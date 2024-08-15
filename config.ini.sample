@@ -1,0 +1,36 @@
+[GLOBAL]
+modem = yes
+sms = yes 
+loop = yes
+email = yes
+telegram = no
+usbcamera = yes
+ipcamera = yes
+
+[EMAIL]
+receiver = receiver@example.com
+login = sender@example.com
+password = PasswordSender
+port = 465
+server = smtp.example.com
+
+[LOOP]
+loop_invert = 1
+loop_pin = GPIO17
+loop_enable = GPIO18
+default_loop_check = 1
+
+[TELEGRAM]
+Name = TelegramBotExample
+Token = 0000000000:xxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+[SMS]
+receiver = +33600000000
+
+[USBCAMERA]
+port= /dev/video0
+
+[IPCAMERA]
+login = loginCamera
+password = passwordCamera
+url=http://192.168.0.xxx/tmpfs/auto.jpg
