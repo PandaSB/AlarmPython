@@ -1,3 +1,4 @@
 # alarm.py
-## Copyright 2024 BARTHELEMY Stephane
-## ISC license
+
+Copyright 2024 BARTHELEMY Stephane
+ISC license
