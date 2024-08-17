@@ -136,15 +136,7 @@ def main():
             hasusbcamera = 1
         if global_config["ipcamera"] == "yes":
             hasipcamera = 1
-<<<<<<< HEAD
         if global_config["default_state"] == "True":
-=======
-<<<<<<< HEAD
-        if global_config["default_state"] == True:
-=======
-        if global_config["default_state"] == "True":
->>>>>>> 89e427d (add callback)
->>>>>>> 3956f0d (add callback)
             alarm_on = True
 
     if "EMAIL" in config:
