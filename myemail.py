@@ -42,24 +42,24 @@ class MyEmail:
         html = "<p>" + body + "</p><br>"
         if photo is not None:
             img = open(photo, "rb").read()
-            msgImg = MIMEImage(img, "png")
-            msgImg.add_header("Content-ID", "<image1>")
-            msgImg.add_header("Content-Disposition", "inline", filename=photo)
+            msg_img = MIMEImage(img, "png")
+            msg_img.add_header("Content-ID", "<image1>")
+            msg_img.add_header("Content-Disposition", "inline", filename=photo)
             html.join('<p><img src="cid:image1"></p>')
 
         if photo2 is not None:
             img2 = open(photo2, "rb").read()
-            msgImg2 = MIMEImage(img2, "png")
-            msgImg2.add_header("Content-ID", "<image2>")
-            msgImg2.add_header("Content-Disposition", "inline", filename=photo2)
+            msg_img2 = MIMEImage(img2, "png")
+            msg_img2.add_header("Content-ID", "<image2>")
+            msg_img2.add_header("Content-Disposition", "inline", filename=photo2)
             html.join('<p><img src="cid:image2"></p>')
 
-        msgHtml = MIMEText(html, "html")
-        msg.attach(msgHtml)
+        msg_html = MIMEText(html, "html")
+        msg.attach(msg_html)
         if photo is not None:
-            msg.attach(msgImg)
+            msg.attach(msg_img)
         if photo2 is not None:
-            msg.attach(msgImg2)
+            msg.attach(msg_img2)
 
         server = smtplib.SMTP_SSL(self.server, self.port)
         server.login(self.email, self.password)

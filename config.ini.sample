@@ -6,6 +6,8 @@ email = yes
 telegram = no
 usbcamera = yes
 ipcamera = yes
+default_state = False
+
 
 [EMAIL]
 receiver = receiver@example.com
@@ -26,6 +28,8 @@ Token = 0000000000:xxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 [SMS]
 receiver = +33600000000
+password = TestPassword
+
 
 [USBCAMERA]
 port= /dev/video0

@@ -12,27 +12,107 @@ from myloop import MyLoop
 from mymodem import MyModem
 from mytelegram import MyTelegram
 from myusbcamera import MyUsbCamera
+from myutils import MyUtils
+
+hasmodem            = 0
+hassms              = 0
+hasemail            = 0
+hastelegram         = 0
+hasloop             = 0
+hasusbcamera        = 0
+hasipcamera         = 0
+
+modem_object        = None
+loop_object         = None
+email_object        = None
+telegram_object     = None
+usbcamera_object    = None
+ipcamera_object     = None
+
+lastloopstatus      = False
+loopcheck           = False
+alarm_on            = False
+
+email_config        = None
+loop_config         = None
+telegram_config     = None
+sms_config          = None
+usbcamera_config    = None
+ipcamera_config     = None
+modemid             = None
+
+
+def command_received (cmd, modem = False , telegram = False):
+    reply = None
+    global alarm_on
+    global email_object
+    global email_config
+    print ('command reveived : ', cmd)
+    check_cmd = cmd.lower()
+    if (check_cmd == 'alarm on'):
+        alarm_on = True
+        reply = 'Alarm activated'
+    if (check_cmd == 'alarm off'):
+        alarm_on = False
+        reply = 'Alarm desactivated'
+    if (check_cmd == 'temp'):
+        reply = 'CPU Temp : ' + str(MyUtils.get_cputemperature()) +'°C'
+    return reply
+
+
+
+def command_callback_telegram (cmd):
+    """Command receive by telegram channel"""
+    print ('cmd telegram: ' + cmd)
+    msg = command_received (cmd,telegram=True)
+    if msg:
+        return msg
+    else:
+        return 'Command unknown'
+
+def command_callback_modem(cmd):
+    global modem_object
+    global sms_config
+    global modemid
+    msg = None
+    """Command received by modem channel"""
+    print ('cmd modem: ', cmd )
+    msg = command_received (cmd,modem=True)
+    if msg:
+        modem_object.createsms(modemid, sms_config["receiver"], cmd +'\r\n'+msg)
 
 
 def main():
     """Main program"""
     print("Alarm app")
-    hasmodem = 0
-    hassms = 0
-    hasemail = 0
-    hastelegram = 0
-    hasloop = 0
-    hasusbcamera = 0
-    hasipcamera = 0
 
-    modem_object = None
-    loop_object = None
-    email_object = None
-    telegram_object = None
-    usbcamera_object = None
-    ipcamera_object = None
-    lastloopstatue = False
-    loopcheck = False
+    global hasmodem
+    global hassms
+    global hasemail
+    global hastelegram
+    global hasloop
+    global hasusbcamera
+    global hasipcamera
+
+    global modem_object
+    global loop_object
+    global email_object
+    global telegram_object
+    global usbcamera_object
+    global ipcamera_object
+
+    global email_config
+    global loop_config
+    global telegram_config
+    global sms_config
+    global usbcamera_config
+    global ipcamera_config
+
+    global lastloopstatus
+    global loopcheck
+    global alarm_on
+    global modemid
+
 
     config = configparser.ConfigParser()
     config.read("config.ini")
@@ -56,6 +136,8 @@ def main():
             hasusbcamera = 1
         if global_config["ipcamera"] == "yes":
             hasipcamera = 1
+        if global_config["default_state"] == "True":
+            alarm_on = True
 
     if "EMAIL" in config:
         email_config = config["EMAIL"]
@@ -113,7 +195,7 @@ def main():
         )
 
     if hastelegram:
-        telegram_object = MyTelegram(telegram_config["token"])
+        telegram_object = MyTelegram(telegram_config["token"],command_callback_telegram)
 
     if hasusbcamera:
         usbcamera_object = MyUsbCamera(usbcamera_config["port"])
@@ -149,37 +231,43 @@ def main():
                 paths = modem_object.getpathsms(str(modemid))
                 for path in paths:
                     phone_number, content = modem_object.readsms(str(modemid), path)
+                    lines = content.splitlines()
+                    if (lines[0] == sms_config["password"]) and (len (lines) == 2):
+                        command_callback_modem(lines[1])
+                    else:
+                        email_object.sendmail(email_config["receiver"],'SMS received', 'SMS content : \r\n<br>'+content)
+                    modem_object.deletesms(str(modemid), path)
                     print(phone_number)
                     print(content)
-
-        if loop_object:
-            loop = loop_object.pinoutgetvalue()
-            print("line " + str(loop))
-        if loop and loopcheck:
-            if loop and not lastloopstatue:
-                filename = None
-                filename2 = None
-                if usbcamera_object:
-                    filename = usbcamera_object.capture_photo()
-                if ipcamera_object:
-                    filename2 = ipcamera_object.capture_photo()
-                if email_object:
-                    email_object.sendmail(
-                        email_config["receiver"],
-                        "Alarm Detected",
-                        "Detection alarm boucle",
-                        filename,
-                        filename2,
-                    )
-                if modem_object:
-                    modem_object.createsms(
-                        modemid, sms_config["receiver"], "Detection Alarm boucle"
-                    )
-                if filename is not None:
-                    os.remove(filename)
-                if filename2 is not None:
-                    os.remove(filename2)
-        lastloopstatue = loop
+        if alarm_on:
+            if loop_object:
+                loop = loop_object.pinoutgetvalue()
+                print("line " + str(loop))
+            if loop and loopcheck:
+                if loop and not lastloopstatus:
+                    filename = None
+                    filename2 = None
+                    if usbcamera_object:
+                        filename = usbcamera_object.capture_photo()
+                    if ipcamera_object:
+                        filename2 = ipcamera_object.capture_photo()
+                    if email_object:
+                        email_object.sendmail(
+                            email_config["receiver"],
+                            "Alarm Detected",
+                            "Detection alarm boucle",
+                            filename,
+                            filename2,
+                        )
+                    if modem_object:
+                        modem_object.createsms(
+                            modemid, sms_config["receiver"], "Detection Alarm boucle"
+                        )
+                    if filename is not None:
+                        os.remove(filename)
+                    if filename2 is not None:
+                        os.remove(filename2)
+            lastloopstatus = loop
 
         time.sleep(1)
 
