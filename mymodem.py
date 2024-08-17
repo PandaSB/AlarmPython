@@ -73,8 +73,9 @@ class MyModem:
         """Delete a specific sms"""
         if int(self.modemid) >= 0:
             output, success = self.system_call(
-                "mmcli  -m " + modemid + " --messaging-delete-sms=" + smspath + "-J"
+                "mmcli  -m " + modemid + " --messaging-delete-sms=" + smspath + " -J"
             )
+        print ('delete sms : ' + output)
 
     def createsms(self, modemid, phone_number, text):
         """Creaate a sms in memory of LTE dongle"""

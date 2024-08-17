@@ -26,7 +26,11 @@ class MyLoop:
 
         pinoutline = gpiod.find_line(in_pinout)
         self.pinoutlines = chip.get_lines([pinoutline.offset()])
-        self.pinoutlines.request(consumer="alarm", type=gpiod.LINE_REQ_DIR_IN)
+        self.pinoutlines.request(
+            consumer="alarm",
+            type=gpiod.LINE_REQ_DIR_IN,
+            flags=gpiod.LINE_REQ_FLAG_BIAS_PULL_UP,
+        )
 
         print(
             "config loop : pinout : "
