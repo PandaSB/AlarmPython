@@ -6,6 +6,7 @@ email = yes
 telegram = no
 usbcamera = yes
 ipcamera = yes
+ups = no
 default_state = False
 
 
@@ -23,8 +24,9 @@ loop_enable = GPIO18
 default_loop_check = 1
 
 [TELEGRAM]
-Name = TelegramBotExample
-Token = 0000000000:xxxxxxxxxxxxxxxxxxxxxxxxxxx
+name = @TelegramBotExample
+chat_id = aaaaaaaaa
+token = 0000000000:xxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 [SMS]
 receiver = +33600000000
