@@ -13,6 +13,7 @@ from mymodem import MyModem
 from mytelegram import MyTelegram
 from myusbcamera import MyUsbCamera
 from myutils import MyUtils
+from myups import MyUps
 
 hasmodem            = 0
 hassms              = 0
@@ -21,6 +22,7 @@ hastelegram         = 0
 hasloop             = 0
 hasusbcamera        = 0
 hasipcamera         = 0
+hasups              = 0
 
 modem_object        = None
 loop_object         = None
@@ -28,6 +30,7 @@ email_object        = None
 telegram_object     = None
 usbcamera_object    = None
 ipcamera_object     = None
+ups_object          = None
 
 lastloopstatus      = False
 loopcheck           = False
@@ -40,6 +43,10 @@ sms_config          = None
 usbcamera_config    = None
 ipcamera_config     = None
 modemid             = None
+upsvoltage          = None
+upscapacity         = None
+pwlinegetvalue      = None
+
 
 
 def command_received (cmd, modem = False , telegram = False):
@@ -47,6 +54,8 @@ def command_received (cmd, modem = False , telegram = False):
     global alarm_on
     global email_object
     global email_config
+    global upsvoltage
+    global upscapacity
     print ('command reveived : ', cmd)
     check_cmd = cmd.lower()
     if (check_cmd == 'alarm on'):
@@ -57,6 +66,8 @@ def command_received (cmd, modem = False , telegram = False):
         reply = 'Alarm desactivated'
     if (check_cmd == 'temp'):
         reply = 'CPU Temp : ' + str(MyUtils.get_cputemperature()) +'°C'
+    if (check_cmd == 'ups'):
+        reply = 'UPS: ' + f'{upsvoltage:1.2f}' + 'V - ' + f'{upscapacity:3.2f}' + '%'
     return reply
 
 
@@ -71,11 +82,11 @@ def command_callback_telegram (cmd):
         return 'Command unknown'
 
 def command_callback_modem(cmd):
+    """Command received by modem channel"""
     global modem_object
     global sms_config
     global modemid
     msg = None
-    """Command received by modem channel"""
     print ('cmd modem: ', cmd )
     msg = command_received (cmd,modem=True)
     if msg:
@@ -93,6 +104,7 @@ def main():
     global hasloop
     global hasusbcamera
     global hasipcamera
+    global hasups
 
     global modem_object
     global loop_object
@@ -112,10 +124,16 @@ def main():
     global loopcheck
     global alarm_on
     global modemid
+    global upsvoltage
+    global upscapacity
+    global pwlinegetvalue
 
 
     config = configparser.ConfigParser()
     config.read("config.ini")
+    if (len (config.sections()) == 0):
+        print ("config file missing !")
+        exit(-1) 
     print(config.sections())
     if "GLOBAL" in config:
         global_config = config["GLOBAL"]
@@ -136,6 +154,8 @@ def main():
             hasusbcamera = 1
         if global_config["ipcamera"] == "yes":
             hasipcamera = 1
+        if global_config["ups"] == "yes":
+            hasups = 1
         if global_config["default_state"] == "True":
             alarm_on = True
 
@@ -194,8 +214,11 @@ def main():
             email_config["port"],
         )
 
+    if hasups:
+        ups_object = MyUps()
+
     if hastelegram:
-        telegram_object = MyTelegram(telegram_config["token"],command_callback_telegram)
+        telegram_object = MyTelegram(telegram_config["chat_id"],  telegram_config["token"],command_callback_telegram)
 
     if hasusbcamera:
         usbcamera_object = MyUsbCamera(usbcamera_config["port"])
@@ -223,7 +246,15 @@ def main():
     if telegram_object:
         print("Telegram bot activate")
 
+
     while True:
+        if ups_object:
+            upsvoltage = ups_object.readVoltage()
+            upscapacity = ups_object.readCapacity()
+            pwlinegetvalue = ups_object.pwlinegetvalue()
+            print ('pw connected : ' + str (pwlinegetvalue))
+            print ('Voltage      : ' + str (upsvoltage))
+            print ('Capacity     : ' + str (upscapacity))
         if modem_object:
             count = modem_object.getcountsms(str(modemid))
             print(count)
@@ -231,12 +262,13 @@ def main():
                 paths = modem_object.getpathsms(str(modemid))
                 for path in paths:
                     phone_number, content = modem_object.readsms(str(modemid), path)
+                    modem_object.deletesms(str(modemid), path)
                     lines = content.splitlines()
                     if (lines[0] == sms_config["password"]) and (len (lines) == 2):
                         command_callback_modem(lines[1])
                     else:
                         email_object.sendmail(email_config["receiver"],'SMS received', 'SMS content : \r\n<br>'+content)
-                    modem_object.deletesms(str(modemid), path)
+
                     print(phone_number)
                     print(content)
         if alarm_on:
@@ -263,6 +295,9 @@ def main():
                         modem_object.createsms(
                             modemid, sms_config["receiver"], "Detection Alarm boucle"
                         )
+                    if telegram_object:
+                        telegram_object.send_message("Detection Alarm boucle")
+
                     if filename is not None:
                         os.remove(filename)
                     if filename2 is not None:
