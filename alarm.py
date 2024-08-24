@@ -5,6 +5,13 @@
 import configparser
 import os
 import time
+import shutil
+import datetime
+import numpy as np    
+from threading import Thread
+from http.server import BaseHTTPRequestHandler, HTTPServer
+from myutils import MyUtils
+
 
 from myemail import MyEmail
 from myipcamera import MyIpCamera
@@ -14,6 +21,8 @@ from mytelegram import MyTelegram
 from myusbcamera import MyUsbCamera
 from myutils import MyUtils
 from myups import MyUps
+from mywebserver import MyWebServer
+
 
 hasmodem            = 0
 hassms              = 0
@@ -23,6 +32,7 @@ hasloop             = 0
 hasusbcamera        = 0
 hasipcamera         = 0
 hasups              = 0
+haswebserver        = 0
 
 modem_object        = None
 loop_object         = None
@@ -31,6 +41,7 @@ telegram_object     = None
 usbcamera_object    = None
 ipcamera_object     = None
 ups_object          = None
+webserver_object    = None
 
 lastloopstatus      = False
 loopcheck           = False
@@ -46,6 +57,134 @@ modemid             = None
 upsvoltage          = None
 upscapacity         = None
 pwlinegetvalue      = None
+
+basewebserver       = None
+
+
+
+class MyServer(BaseHTTPRequestHandler):
+    def do_GET(self):
+        global basewebserver
+        global alarm_on
+        global hasups
+        global ups_object
+        global usbcamera_object
+        global ipcamera_object
+        file_name, file_extension = os.path.splitext(self.path.lower())
+        print ('filename' + file_name)
+        print ('extension' + file_extension)
+        if (file_name == '/'):
+            file_name = '/index'
+            file_extension = '.html'
+
+        if (self.path.startswith("/control")):
+ 
+            command = self.path[len('/control'):].split("?")[0]
+            print ('command :' + command)
+
+            if (command == '/set_alarm_off'):
+                alarm_on = False
+                self.send_response(200)
+                self.send_header("Content-type", "text/plain")
+                self.end_headers()
+                self.wfile.write(bytes(str(alarm_on), "utf-8"))        
+            if (command == '/set_alarm_on'):
+                alarm_on = True
+                self.send_response(200)
+                self.send_header("Content-type", "text/plain")
+                self.end_headers()
+                self.wfile.write(bytes(str(alarm_on), "utf-8"))             
+            if (command == '/get_alarm_status'):
+                self.send_response(200)
+                self.send_header("Content-type", "text/plain")
+                self.end_headers()
+                self.wfile.write(bytes(str(alarm_on), "utf-8"))
+            elif (command == '/get_alarm_datetime'):
+                self.send_response(200)
+                self.send_header("Content-type", "text/plain")
+                self.end_headers() 
+                now = datetime.datetime.now()
+                timedate = now.strftime("%d/%m/%Y %H:%M:%S")  
+                print (timedate)
+                self.wfile.write(bytes(timedate, "utf-8"))
+            elif (command == '/get_alarm_temp'):
+                self.send_response(200)
+                self.send_header("Content-type", "text/plain")
+                self.end_headers()
+                self.wfile.write(bytes(str(MyUtils.get_cputemperature()), "utf-8"))     
+            elif (command == '/get_alarm_tension'):
+                self.send_response(200)
+                self.send_header("Content-type", "text/plain")
+                self.end_headers()
+                if hasups: 
+                    self.wfile.write(bytes(str(ups_object.readVoltage()), "utf-8"))     
+                else:
+                    self.wfile.write(bytes(str('--')))
+            elif (command == '/get_alarm_capacity'):    
+                self.send_response(200)
+                self.send_header("Content-type", "text/plain")
+                self.end_headers()
+                if hasups: 
+                    self.wfile.write(bytes(str(ups_object.readCapacity()), "utf-8"))     
+                else:
+                    self.wfile.write(bytes(str('---')))
+            elif (command == '/img1.jpg'):
+                filename = None
+                self.send_response(200)
+                self.send_header("Content-type", "image/jpeg")
+                self.end_headers()   
+                if usbcamera_object:
+                    filename = usbcamera_object.capture_photo()
+                    with open(filename, 'rb') as content:
+                        shutil.copyfileobj(content, self.wfile)
+                    if filename is not None:
+                        os.remove(filename) 
+                else:
+                    self.send_error(404)
+
+            elif (command == '/img2.jpg'):
+                filename = None
+                self.send_response(200)
+                self.send_header("Content-type", "image/jpeg")
+                self.end_headers()   
+                if ipcamera_object:
+                    filename = ipcamera_object.capture_photo()
+                    with open(filename, 'rb') as content:
+                        shutil.copyfileobj(content, self.wfile)
+                    if filename is not None:
+                        os.remove(filename) 
+                else:
+                    self.send_error(404)
+            else:
+                self.send_response(200)
+                self.send_header("Content-type", "text/html")
+                self.end_headers()   
+                self.wfile.write(bytes("<html><head><title>image</title></head>", "utf-8"))
+                self.wfile.write(bytes("<p>Request: %s</p>" % self.path, "utf-8"))
+                self.wfile.write(bytes("<body>", "utf-8"))
+                self.wfile.write(bytes("<p>This is an example web server.</p>", "utf-8"))
+                self.wfile.write(bytes("</body></html>", "utf-8"))                   
+        else:
+            print (basewebserver + file_name + file_extension)
+            if os.path.isfile(basewebserver + file_name + file_extension):
+                self.send_response(200)
+                if (file_extension == '.html' ) or (file_extension == ''):
+                    self.send_header("Content-type", "text/html")
+                elif (file_extension == 'jpeg') or (file_extension == '.jpg'):
+                    self.send_header("Content-type", "image/jpeg")
+                elif (file_extension == '.css') :
+                    self.send_header("Content-type", "text/css")
+                elif (file_extension == '.js') :
+                    self.send_header("Content-type", "application/javascript")
+                else:
+                    self.send_header("Content-type", "text/plain")
+                self.end_headers()
+                
+                with open(basewebserver + file_name + file_extension, 'rb') as content:
+                    shutil.copyfileobj(content, self.wfile)
+            
+            else:
+                self.send_error(404)
 
 
 
@@ -105,6 +244,7 @@ def main():
     global hasusbcamera
     global hasipcamera
     global hasups
+    global haswebserver
 
     global modem_object
     global loop_object
@@ -112,6 +252,7 @@ def main():
     global telegram_object
     global usbcamera_object
     global ipcamera_object
+    global webserver_object
 
     global email_config
     global loop_config
@@ -119,6 +260,8 @@ def main():
     global sms_config
     global usbcamera_config
     global ipcamera_config
+    global webserver_config
+    global ups_object
 
     global lastloopstatus
     global loopcheck
@@ -127,6 +270,7 @@ def main():
     global upsvoltage
     global upscapacity
     global pwlinegetvalue
+    global basewebserver
 
 
     config = configparser.ConfigParser()
@@ -156,6 +300,8 @@ def main():
             hasipcamera = 1
         if global_config["ups"] == "yes":
             hasups = 1
+        if global_config["webserver"] == "yes":
+            haswebserver = 1
         if global_config["default_state"] == "True":
             alarm_on = True
 
@@ -195,6 +341,12 @@ def main():
         for key in ipcamera_config:
             print(key + ":" + ipcamera_config[key])
 
+    if "WEBSERVER" in config:
+        webserver_config = config["WEBSERVER"]
+        print(webserver_config)
+        for key in webserver_config:
+            print(key + ":" + webserver_config[key])
+
     if hasmodem:
         modem_object = MyModem()
 
@@ -227,8 +379,12 @@ def main():
         ipcamera_object = MyIpCamera(
             ipcamera_config["login"],
             ipcamera_config["password"],
-            ipcamera_config["url"],
-        )
+            ipcamera_config["url"])
+
+    if haswebserver:
+        basewebserver = webserver_config["base"]
+        webserver_object = MyWebServer(webserver_config["hostname"], webserver_config["port"], MyServer)
+        
 
     if modem_object:
         modemid = modem_object.getmodem()

@@ -1,0 +1,108 @@
+<html>
+    <head>
+        <title>alarm server</title>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+        <link rel="stylesheet" href="https://code.getmdl.io/1.3.0/material.indigo-pink.min.css">
+        <script defer src="https://code.getmdl.io/1.3.0/material.min.js"></script>
+    </head>
+<body>
+<p>Alarm Web server.</p>
+<!-- Accent-colored raised button with ripple -->
+<button id=bt1 class="mdl-button mdl-js-button mdl-button--raised mdl-js-ripple-effect mdl-button--accent" onclick="changeAlarm();">
+    Button
+  </button>
+
+  <div>
+    Date <span id = div1> Date inconnu</span> <br>
+    Temp CPU :  <span id = temp1> %%</span> <br>
+    Tension <span id = tens1> %% </span>  Volts<br>  
+    Capacity :  <span id = cap1> %%</span> %<br>  
+  </div>
+  <div>
+    <img src="tools-table.jpg" alt="Image from Camera 1" height="480" width="640" id = "img1" >
+    <img src="tools-table.jpg" alt="Image from Camera 1" height="480" width="640" id = "img2" >
+  </div>
+
+  <!-- Colored FAB button -->
+  <button id="bt2" class="mdl-button mdl-js-button mdl-button--fab mdl-button--colored" onClick="window.location.reload();"> 
+    <i class="material-icons">add</i>
+  </button>
+
+  <script>
+    var loop = 0;
+    const loopindex = "|/-\\"
+
+    function changeAlarm ()
+    {
+      alarm_status = httpGet ('control/get_alarm_status')
+      console.log ("Change Alarm status ")
+      console.log (alarm_status)
+      if (alarm_status == "False")
+      {
+        console.log ("Set Alarm on  ")
+        httpGet ('control/set_alarm_on');
+      }
+      else
+      {
+        console.log ("Set Alarm off  ")
+        httpGet ('control/set_alarm_off');
+      }
+    }
+
+    function httpGet(theUrl)
+    {
+        let xmlhttp;
+
+
+        if (window.XMLHttpRequest) { // code for IE7+, Firefox, Chrome, Opera, Safari
+            xmlhttp=new XMLHttpRequest();
+        } else { // code for IE6, IE5
+            xmlhttp=new ActiveXObject("Microsoft.XMLHTTP");
+        }
+
+        xmlhttp.onreadystatechange=function() {
+            if (xmlhttp.readyState==4 && xmlhttp.status==200) {
+                return xmlhttp.responseText;
+            }
+        }
+        xmlhttp.open("GET", theUrl, false);
+        xmlhttp.send();
+
+        console.log(xmlhttp.response);
+        return xmlhttp.response;
+    }
+    
+    // program to display a text using setTimeout method
+    function greet() {
+        console.log('Hello world');
+        loop ++ ; 
+        if (loop  > 3 ) {
+          loop = 0 
+        }
+        alarm_status = httpGet ('control/get_alarm_status')
+        alarm_temp = httpGet ('control/get_alarm_temp')
+        alarm_datetime = httpGet ('control/get_alarm_datetime')    
+        alarm_tension = httpGet ('control/get_alarm_tension')
+        alarm_capacity = httpGet ('control/get_alarm_capacity')  
+        if (alarm_status == "False")
+        {
+          document.getElementById('bt1').innerText = "Activer l'alarme";
+        }
+        else
+        {
+          document.getElementById('bt1').innerText = "Desactiver l'alarme";
+        }    
+        document.getElementById('bt2').innerText = loopindex.charAt(loop);
+        document.getElementById('div1').innerText = alarm_datetime;
+        document.getElementById('temp1').innerText = alarm_temp;
+        document.getElementById('tens1').innerText = alarm_tension;
+        document.getElementById('cap1').innerText = alarm_capacity;
+        document.getElementById('img1').src = 'control/img1.jpg?' + new Date().getTime();
+        document.getElementById('img2').src = 'control/img2.jpg?' + new Date().getTime();
+        
+        setTimeout (greet , 1000); 
+
+    }
+    greet();
+    </script>
+</body></html>
