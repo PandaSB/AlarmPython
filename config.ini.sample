@@ -7,6 +7,7 @@ telegram = no
 usbcamera = yes
 ipcamera = yes
 ups = no
+webserver = yes
 default_state = False
 
 
@@ -40,3 +41,8 @@ port= /dev/video0
 login = loginCamera
 password = passwordCamera
 url=http://192.168.0.xxx/tmpfs/auto.jpg
+
+[WEBSERVER]
+hostname = 0.0.0.0
+port = 8080
+base = html
