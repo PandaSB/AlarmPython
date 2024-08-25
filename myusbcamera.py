@@ -20,6 +20,7 @@ class MyUsbCamera:
     video_capture = None
 
     def __init__(self, camera_port):
+        """Init video camera for V4l2 device"""
         self.camera_id = camera_port
         self.video_capture = cv2.VideoCapture(self.camera_id, cv2.CAP_V4L2)
 

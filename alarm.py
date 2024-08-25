@@ -7,11 +7,7 @@ import os
 import time
 import shutil
 import datetime
-import numpy as np    
-from threading import Thread
-from http.server import BaseHTTPRequestHandler, HTTPServer
-from myutils import MyUtils
-
+from http.server import BaseHTTPRequestHandler
 
 from myemail import MyEmail
 from myipcamera import MyIpCamera
