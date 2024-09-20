@@ -8,6 +8,7 @@ usbcamera = yes
 ipcamera = yes
 ups = no
 webserver = yes
+serial = yes
 default_state = False
 
 
@@ -46,3 +47,10 @@ url=http://192.168.0.xxx/tmpfs/auto.jpg
 hostname = 0.0.0.0
 port = 8080
 base = html
+
+[SERIAL]
+port = /dev/ttyUSB4
+speed = 9600
+bytesize = 8 
+parity = N
+stop = 1 

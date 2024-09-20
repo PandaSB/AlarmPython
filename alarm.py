@@ -15,6 +15,7 @@ from myloop import MyLoop
 from mymodem import MyModem
 from mytelegram import MyTelegram
 from myusbcamera import MyUsbCamera
+from myserial import MySerial
 from myutils import MyUtils
 from myups import MyUps
 from mywebserver import MyWebServer
@@ -29,6 +30,7 @@ hasusbcamera        = 0
 hasipcamera         = 0
 hasups              = 0
 haswebserver        = 0
+hasserial           = 0 
 
 modem_object        = None
 loop_object         = None
@@ -38,6 +40,7 @@ usbcamera_object    = None
 ipcamera_object     = None
 ups_object          = None
 webserver_object    = None
+serial_object       = None
 
 lastloopstatus      = False
 loopcheck           = False
@@ -49,6 +52,7 @@ telegram_config     = None
 sms_config          = None
 usbcamera_config    = None
 ipcamera_config     = None
+serial_config       = None
 modemid             = None
 upsvoltage          = None
 upscapacity         = None
@@ -183,6 +187,20 @@ class MyServer(BaseHTTPRequestHandler):
                 self.send_error(404)
 
 
+def command_serial ( buffer):
+    print ("Buffer Serial Received : " + buffer)
+    check_cmd = buffer.lower().split()
+    print ("Buffer check_cmd : " )
+    if (len(check_cmd) > 0):
+        print (check_cmd)
+        if (check_cmd[0] == 'hfrecu'):
+            print ("Code recu HF : " + check_cmd[1])
+        elif (check_cmd[0] == 'alim'):
+            print ("Tension alim: " + check_cmd[1])
+        elif (check_cmd[0] == 'bat'):
+            print ("Tension Batterie : " + check_cmd[1])
+        else:
+            print ('Command inconnu : ' + buffer) 
 
 def command_received (cmd, modem = False , telegram = False):
     reply = None
@@ -241,6 +259,7 @@ def main():
     global hasipcamera
     global hasups
     global haswebserver
+    global hasserial
 
     global modem_object
     global loop_object
@@ -249,6 +268,7 @@ def main():
     global usbcamera_object
     global ipcamera_object
     global webserver_object
+    global serial_object
 
     global email_config
     global loop_config
@@ -257,6 +277,7 @@ def main():
     global usbcamera_config
     global ipcamera_config
     global webserver_config
+    global serial_config 
     global ups_object
 
     global lastloopstatus
@@ -294,6 +315,8 @@ def main():
             hasusbcamera = 1
         if global_config["ipcamera"] == "yes":
             hasipcamera = 1
+        if global_config["serial"] == "yes":
+            hasserial = 1
         if global_config["ups"] == "yes":
             hasups = 1
         if global_config["webserver"] == "yes":
@@ -343,6 +366,12 @@ def main():
         for key in webserver_config:
             print(key + ":" + webserver_config[key])
 
+    if "SERIAL" in config:
+        serial_config = config["SERIAL"]
+        print(serial_config)
+        for key in serial_config:
+            print(key + ":" + serial_config[key])
+
     if hasmodem:
         modem_object = MyModem()
 
@@ -380,6 +409,13 @@ def main():
     if haswebserver:
         basewebserver = webserver_config["base"]
         webserver_object = MyWebServer(webserver_config["hostname"], webserver_config["port"], MyServer)
+
+    if hasserial:
+        serial_object = MySerial(serial_config["port"],serial_config["speed"],serial_config["bytesize"],serial_config["parity"],serial_config["stop"], command_serial)
+
+
+    if serial_object:
+        serial_object.write ("Serial open \r\n")
         
 
     if modem_object:
