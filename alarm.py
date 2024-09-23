@@ -65,6 +65,13 @@ upscapacity         = None
 pwlinegetvalue      = None
 
 basewebserver       = None
+alimserialvalue     = 0.0
+alimserialvalid     = False
+alimseriallow       = False
+batserialvalue      = 0.0
+batserialvalid      = False
+batseriallow        = False
+
 
 class MyServer(BaseHTTPRequestHandler):
     def do_GET(self):
@@ -196,6 +203,11 @@ def command_serial ( buffer):
     global hashf
     global hf_config
     global intrusion
+    global alimserialvalue
+    global alimserialvalid
+    global batserialvalue
+    global batserialvalid
+
     check_cmd = buffer.lower().split()
     if (len(check_cmd) > 0):
         if (check_cmd[0] == 'hfrecu'):
@@ -215,8 +227,13 @@ def command_serial ( buffer):
             """ fin gestion infrarouge """
         elif (check_cmd[0] == 'alim'):
             print ("Tension alim: " + check_cmd[1])
+            alimserialvalue = float (check_cmd[1])
+            alimserialvalid = True
         elif (check_cmd[0] == 'bat'):
             print ("Tension Batterie : " + check_cmd[1])
+            batserialvalue = float (check_cmd[1])
+            batserialvalid = True
+
         else:
             print ('Command inconnu : ' + buffer) 
 
@@ -307,6 +324,10 @@ def main():
     global pwlinegetvalue
     global basewebserver
     global intrusion
+
+    global alimserialvalue
+    global alimserialvalid
+    global alimseriallow
 
 
     config = configparser.ConfigParser()
@@ -508,22 +529,18 @@ def main():
                 telegram_object.send_message(msg_status)
             lastalarmstate = alarm_on
 
-        if intrusion:
-            intrusion = False
-            filename = None
-            filename2 = None
-            if usbcamera_object:
-                filename = usbcamera_object.capture_photo()
-            if ipcamera_object:
-                filename2 = ipcamera_object.capture_photo()
-            msg_status = "Intrusion "
+
+
+        if (alimseriallow == False) and (alimserialvalid == True) and (alimserialvalue  < 1 ):
+            alimseriallow = True
+            msg_status = "Alarm tension basse : " + str (alimserialvalue) + "V"
             if email_object:
                         email_object.sendmail(
                             email_config["receiver"],
                             "Alarm change",
                             msg_status,
-                            filename,
-                            filename2
+                            None,
+                            None
                         )
             if modem_object:
                 modem_object.createsms(
@@ -532,13 +549,57 @@ def main():
             if telegram_object:
                 telegram_object.send_message(msg_status)
 
-            if filename is not None:
-                os.remove(filename)
-            if filename2 is not None:
-                os.remove(filename2)
+        if (alimseriallow == True) and (alimserialvalid == True) and (alimserialvalue  > 1 ):
+            alimseriallow = False
+            msg_status = "Alarm retour tension  : " + str (alimserialvalue) + "V"
+            if email_object:
+                        email_object.sendmail(
+                            email_config["receiver"],
+                            "Alarm change",
+                            msg_status,
+                            None,
+                            None
+                        )
+            if modem_object:
+                modem_object.createsms(
+                    modemid, sms_config["receiver"], msg_status
+                )
+            if telegram_object:
+                telegram_object.send_message(msg_status)
+
 
         if alarm_on:
             print("alarme on ")
+
+            if intrusion:
+                intrusion = False
+                filename = None
+                filename2 = None
+                if usbcamera_object:
+                    filename = usbcamera_object.capture_photo()
+                if ipcamera_object:
+                    filename2 = ipcamera_object.capture_photo()
+                msg_status = "Intrusion "
+                if email_object:
+                            email_object.sendmail(
+                                email_config["receiver"],
+                                "Alarm change",
+                                msg_status,
+                                filename,
+                                filename2
+                            )
+                if modem_object:
+                    modem_object.createsms(
+                        modemid, sms_config["receiver"], msg_status
+                    )
+                if telegram_object:
+                    telegram_object.send_message(msg_status)
+
+                if filename is not None:
+                    os.remove(filename)
+                if filename2 is not None:
+                    os.remove(filename2)
+
             if loop_object:
                 loop = loop_object.pinoutgetvalue()
                 print("line " + str(loop))
