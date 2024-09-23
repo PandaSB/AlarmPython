@@ -8,6 +8,7 @@ usbcamera = yes
 ipcamera = yes
 ups = no
 webserver = yes
+hf = yes
 serial = yes
 default_state = False
 
@@ -51,6 +52,11 @@ base = html
 [SERIAL]
 port = /dev/ttyUSB4
 speed = 9600
-bytesize = 8 
+bytesize = 8
 parity = N
-stop = 1 
+stop = 1
+
+[HF]
+onalarm   = 00000001
+offalarm  = 00000002
+intrusion = 00000003

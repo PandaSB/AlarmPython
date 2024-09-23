@@ -31,6 +31,7 @@ hasipcamera         = 0
 hasups              = 0
 haswebserver        = 0
 hasserial           = 0 
+hashf               = 0
 
 modem_object        = None
 loop_object         = None
@@ -45,6 +46,9 @@ serial_object       = None
 lastloopstatus      = False
 loopcheck           = False
 alarm_on            = False
+lastalamstate       = False
+intrusion           = False
+lastalarmstate      = False
 
 email_config        = None
 loop_config         = None
@@ -53,14 +57,14 @@ sms_config          = None
 usbcamera_config    = None
 ipcamera_config     = None
 serial_config       = None
+hf_config           = None
+
 modemid             = None
 upsvoltage          = None
 upscapacity         = None
 pwlinegetvalue      = None
 
 basewebserver       = None
-
-
 
 class MyServer(BaseHTTPRequestHandler):
     def do_GET(self):
@@ -186,15 +190,29 @@ class MyServer(BaseHTTPRequestHandler):
             else:
                 self.send_error(404)
 
-
 def command_serial ( buffer):
-    print ("Buffer Serial Received : " + buffer)
+    reply = None
+    global alarm_on
+    global hashf
+    global hf_config
+    global intrusion
     check_cmd = buffer.lower().split()
-    print ("Buffer check_cmd : " )
     if (len(check_cmd) > 0):
-        print (check_cmd)
         if (check_cmd[0] == 'hfrecu'):
-            print ("Code recu HF : " + check_cmd[1])
+            """ gestion alarme télécommande """
+            if (check_cmd[1] == hf_config['onalarm']):
+                print ("alarme on : ")
+                alarm_on = True
+            if (check_cmd[1] == hf_config['offalarm']):
+                print ("alarme off : ")
+                alarm_on = False
+            """ fin gestion alarme télécommande  """
+
+            """ gestion infrarouge  """
+            if (check_cmd[1] == hf_config['intrusion']):
+                print ("intrusion !")
+                intrusion = True
+            """ fin gestion infrarouge """
         elif (check_cmd[0] == 'alim'):
             print ("Tension alim: " + check_cmd[1])
         elif (check_cmd[0] == 'bat'):
@@ -223,8 +241,6 @@ def command_received (cmd, modem = False , telegram = False):
         reply = 'UPS: ' + f'{upsvoltage:1.2f}' + 'V - ' + f'{upscapacity:3.2f}' + '%'
     return reply
 
-
-
 def command_callback_telegram (cmd):
     """Command receive by telegram channel"""
     print ('cmd telegram: ' + cmd)
@@ -245,7 +261,6 @@ def command_callback_modem(cmd):
     if msg:
         modem_object.createsms(modemid, sms_config["receiver"], cmd +'\r\n'+msg)
 
-
 def main():
     """Main program"""
     print("Alarm app")
@@ -260,6 +275,7 @@ def main():
     global hasups
     global haswebserver
     global hasserial
+    global hashf
 
     global modem_object
     global loop_object
@@ -269,6 +285,7 @@ def main():
     global ipcamera_object
     global webserver_object
     global serial_object
+    global ups_object
 
     global email_config
     global loop_config
@@ -278,9 +295,10 @@ def main():
     global ipcamera_config
     global webserver_config
     global serial_config 
-    global ups_object
+    global hf_config
 
     global lastloopstatus
+    global lastalarmstate
     global loopcheck
     global alarm_on
     global modemid
@@ -288,6 +306,7 @@ def main():
     global upscapacity
     global pwlinegetvalue
     global basewebserver
+    global intrusion
 
 
     config = configparser.ConfigParser()
@@ -321,8 +340,11 @@ def main():
             hasups = 1
         if global_config["webserver"] == "yes":
             haswebserver = 1
+        if global_config["hf"] == "yes":
+            hashf = 1
         if global_config["default_state"] == "True":
             alarm_on = True
+
 
     if "EMAIL" in config:
         email_config = config["EMAIL"]
@@ -372,6 +394,12 @@ def main():
         for key in serial_config:
             print(key + ":" + serial_config[key])
 
+    if "HF" in config:
+        hf_config = config["HF"]
+        print(hf_config)
+        for key in hf_config:
+            print(key + ":" + hf_config[key])
+
     if hasmodem:
         modem_object = MyModem()
 
@@ -413,10 +441,8 @@ def main():
     if hasserial:
         serial_object = MySerial(serial_config["port"],serial_config["speed"],serial_config["bytesize"],serial_config["parity"],serial_config["stop"], command_serial)
 
-
     if serial_object:
         serial_object.write ("Serial open \r\n")
-        
 
     if modem_object:
         modemid = modem_object.getmodem()
@@ -436,16 +462,17 @@ def main():
 
 
     while True:
+        print ('Alarm status : ' + str (alarm_on))
         if ups_object:
             upsvoltage = ups_object.readVoltage()
             upscapacity = ups_object.readCapacity()
             pwlinegetvalue = ups_object.pwlinegetvalue()
+
             print ('pw connected : ' + str (pwlinegetvalue))
             print ('Voltage      : ' + str (upsvoltage))
             print ('Capacity     : ' + str (upscapacity))
         if modem_object:
             count = modem_object.getcountsms(str(modemid))
-            print(count)
             if count > 0:
                 paths = modem_object.getpathsms(str(modemid))
                 for path in paths:
@@ -459,7 +486,59 @@ def main():
 
                     print(phone_number)
                     print(content)
+        if lastalarmstate != alarm_on:
+            if alarm_on:
+                msg_status = "Alarm on"
+            else:
+                msg_status = "Alarm off"
+            print ("change alarm status : " + msg_status)
+            if email_object:
+                        email_object.sendmail(
+                            email_config["receiver"],
+                            "Alarm change",
+                            msg_status,
+                            None,
+                            None
+                        )
+            if modem_object:
+                modem_object.createsms(
+                    modemid, sms_config["receiver"], msg_status
+                )
+            if telegram_object:
+                telegram_object.send_message(msg_status)
+            lastalarmstate = alarm_on
+
+        if intrusion:
+            intrusion = False
+            filename = None
+            filename2 = None
+            if usbcamera_object:
+                filename = usbcamera_object.capture_photo()
+            if ipcamera_object:
+                filename2 = ipcamera_object.capture_photo()
+            msg_status = "Intrusion "
+            if email_object:
+                        email_object.sendmail(
+                            email_config["receiver"],
+                            "Alarm change",
+                            msg_status,
+                            filename,
+                            filename2
+                        )
+            if modem_object:
+                modem_object.createsms(
+                    modemid, sms_config["receiver"], msg_status
+                )
+            if telegram_object:
+                telegram_object.send_message(msg_status)
+
+            if filename is not None:
+                os.remove(filename)
+            if filename2 is not None:
+                os.remove(filename2)
+
         if alarm_on:
+            print("alarme on ")
             if loop_object:
                 loop = loop_object.pinoutgetvalue()
                 print("line " + str(loop))
@@ -491,7 +570,6 @@ def main():
                     if filename2 is not None:
                         os.remove(filename2)
             lastloopstatus = loop
-
         time.sleep(1)
 
 
