@@ -23,6 +23,7 @@ class MyModem:
         return output, success
 
     def __init__(self):
+        """ Init connection to modem , looking for modem in ModemManager""" 
         self.modemid = -2
         output, success = self.system_call("mmcli --list-modems -J")
         if success:
