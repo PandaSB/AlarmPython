@@ -49,6 +49,7 @@ alarm_on            = False
 lastalamstate       = False
 intrusion           = False
 lastalarmstate      = False
+lastintrutiontime   = 0
 
 email_config        = None
 loop_config         = None
@@ -207,6 +208,7 @@ def command_serial ( buffer):
     global alimserialvalid
     global batserialvalue
     global batserialvalid
+    global lastintrutiontime
 
     check_cmd = buffer.lower().split()
     if (len(check_cmd) > 0):
@@ -222,8 +224,12 @@ def command_serial ( buffer):
 
             """ gestion infrarouge  """
             if (check_cmd[1] == hf_config['intrusion']):
-                print ("intrusion !")
-                intrusion = True
+                currenttime = int(time.time())
+                print ( "intrusion : " + str(currenttime) + "offset : " +  str (currenttime - lastintrutiontime) )
+                if currenttime > (lastintrutiontime + 60):
+                    lastintrutiontime = currenttime
+                    intrusion = True
+
             """ fin gestion infrarouge """
         elif (check_cmd[0] == 'alim'):
             print ("Tension alim: " + check_cmd[1])
