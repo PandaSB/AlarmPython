@@ -16,6 +16,7 @@ class MyIpCamera:
     url = ""
 
     def __init__(self, login, password, url):
+        """ create object with login credentials"""
         self.login = login
         self.password = password
         self.url = url

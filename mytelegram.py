@@ -31,6 +31,7 @@ class MyTelegram:
     chat_id = None
 
     def start_pulling ( self ):
+        """ poll of telegram bot """
         print ('start polling telegram')
         self.updater.start_polling()
 
@@ -55,11 +56,13 @@ class MyTelegram:
         update.message.reply_text(reply)
 
     def send_message (self , message):
+        """ Send a message to the telegram bot"""
         if self.bot:
             print (' send message ' + self.chat_id + ":" + message)
             self.bot.send_message(chat_id= self.chat_id,  text=message)
 
     def __init__(self, chat_id , token, _callback = None):
+        """ init telegram bot """
         self.callback = _callback
         self.bot = Bot(token)
         self.updater = Updater(token)

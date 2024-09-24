@@ -5,7 +5,7 @@ import serial
 from threading import Thread
 
 class MySerial:
-    """access to Serial Message"""
+    """access to Message on serial interface """
     serialPort = None 
     buffer = ""
     callback = None
@@ -23,6 +23,7 @@ class MySerial:
                         self.buffer = self.buffer + data.decode("utf-8")
 
     def write (self, writeBuffer):
+        """ Send data to serial """
         self.serialPort.write (str.encode(writeBuffer))
 
 

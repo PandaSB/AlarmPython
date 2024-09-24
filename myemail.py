@@ -19,6 +19,7 @@ class MyEmail:
     server = None
 
     def __init__(self, email, password, server, port):
+        """ Set parameters to join the email server"""
         print("Config Email : " + email + "/" + password + "@" + server + ":" + port)
         self.email = email
         self.password = password
