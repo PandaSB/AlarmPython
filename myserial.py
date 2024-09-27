@@ -1,6 +1,10 @@
 # SPDX-FileCopyrightText: 2024 BARTHELEMY Stephane  stephane@sbarthelemy.com
 # SPDX-License-Identifier: ISC
 
+#to update specific name for usb serial
+#/etc/udev/rules.d/99-usb-serial.rules
+#SUBSYSTEM=="tty", ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="ea60", SYMLINK+="ttySER0"
+
 import serial
 from threading import Thread
 
