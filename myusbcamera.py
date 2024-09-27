@@ -22,17 +22,18 @@ class MyUsbCamera:
     def __init__(self, camera_port):
         """Init video camera for V4l2 device"""
         self.camera_id = camera_port
+
+    def capture_photo(self, name=None):
+        """Function capture video from /dev/video* device"""
+        frame = np.zeros((self.height, self.width, 3), np.uint8)
         self.video_capture = cv2.VideoCapture(self.camera_id, cv2.CAP_V4L2)
 
         self.video_capture.set(cv2.CAP_PROP_FRAME_WIDTH, self.width)
         self.video_capture.set(cv2.CAP_PROP_FRAME_HEIGHT, self.height)
         self.video_capture.set(cv2.CAP_PROP_FPS, self.fps)
-
-    def capture_photo(self, name=None):
-        """Function capture video from /dev/video* device"""
-        frame = np.zeros((self.height, self.width, 3), np.uint8)
         if self.video_capture.isOpened():
             ret_val, frame = self.video_capture.read()
+            self.video_capture.release()
         if name is None:
             name = "/tmp/image" + str(int(random.random() * 1000)) + ".png"
         print("name" + name)
