@@ -62,7 +62,11 @@ class MyEmail:
         if photo2 is not None:
             msg.attach(msg_img2)
 
-        server = smtplib.SMTP_SSL(self.server, self.port)
-        server.login(self.email, self.password)
-        server.sendmail(self.email, receiver, msg.as_string())
-        server.quit()
+
+        try:
+            server = smtplib.SMTP_SSL(self.server, self.port)
+            server.login(self.email, self.password)
+            server.sendmail(self.email, receiver, msg.as_string())
+            server.quit()
+        except Exception:
+            print("Error send Email")
