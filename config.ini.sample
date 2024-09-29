@@ -10,6 +10,8 @@ ups = no
 webserver = yes
 hf = yes
 serial = yes
+aws = no
+temp = yes
 default_state = False
 
 
@@ -60,3 +62,14 @@ stop = 1
 onalarm   = 00000001
 offalarm  = 00000002
 intrusion = 00000003
+
+[AWS]
+endpoint = xxxxxxxxx.iot.eu-west-3.amazonaws.com
+ca_cert  = ./certs/root-CA.crt
+certfile = ./certs/xxxxxxx.private.key
+keyfile  = ./certs/xxxxxx.cert.pem 
+topic    = Alarm/python
+
+[TEMP]
+type = AM2320
+addresse = 0x5C

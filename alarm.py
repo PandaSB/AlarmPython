@@ -19,6 +19,8 @@ from myserial import MySerial
 from myutils import MyUtils
 from myups import MyUps
 from mywebserver import MyWebServer
+from myaws import MyAws
+from mytemp import MyTemp
 
 
 hasmodem            = 0
@@ -32,6 +34,8 @@ hasups              = 0
 haswebserver        = 0
 hasserial           = 0 
 hashf               = 0
+hasaws              = 0 
+hastemp             = 0
 
 modem_object        = None
 loop_object         = None
@@ -42,6 +46,8 @@ ipcamera_object     = None
 ups_object          = None
 webserver_object    = None
 serial_object       = None
+aws_object          = None
+temp_object         = None
 
 lastloopstatus      = False
 loopcheck           = False
@@ -59,9 +65,12 @@ usbcamera_config    = None
 ipcamera_config     = None
 serial_config       = None
 hf_config           = None
+aws_config          = None
+temp_config         = None
 
 modemid             = None
 upsvoltage          = None
+upscurrent          = None
 upscapacity         = None
 pwlinegetvalue      = None
 
@@ -73,6 +82,9 @@ batserialvalue      = 0.0
 batserialvalid      = False
 batseriallow        = False
 
+exttemp             = 0.0
+exthumidity         = 0.0         
+
 
 class MyServer(BaseHTTPRequestHandler):
     def do_GET(self):
@@ -82,6 +94,8 @@ class MyServer(BaseHTTPRequestHandler):
         global ups_object
         global usbcamera_object
         global ipcamera_object
+        global exttemp
+        global exthumidity
         file_name, file_extension = os.path.splitext(self.path.lower())
         print ('filename' + file_name)
         print ('extension' + file_extension)
@@ -119,6 +133,16 @@ class MyServer(BaseHTTPRequestHandler):
                 timedate = now.strftime("%d/%m/%Y %H:%M:%S")  
                 print (timedate)
                 self.wfile.write(bytes(timedate, "utf-8"))
+            elif (command == '/get_temperature'):
+                self.send_response(200)
+                self.send_header("Content-type", "text/plain")
+                self.end_headers()
+                self.wfile.write(bytes(str(exttemp), "utf-8"))     
+            elif (command == '/get_humidity'):
+                self.send_response(200)
+                self.send_header("Content-type", "text/plain")
+                self.end_headers()
+                self.wfile.write(bytes(str(exthumidity), "utf-8"))    
             elif (command == '/get_alarm_temp'):
                 self.send_response(200)
                 self.send_header("Content-type", "text/plain")
@@ -130,6 +154,14 @@ class MyServer(BaseHTTPRequestHandler):
                 self.end_headers()
                 if hasups: 
                     self.wfile.write(bytes(str(ups_object.readVoltage()), "utf-8"))     
+                else:
+                    self.wfile.write(bytes(str('--')))
+            elif (command == '/get_alarm_current'):
+                self.send_response(200)
+                self.send_header("Content-type", "text/plain")
+                self.end_headers()
+                if hasups: 
+                    self.wfile.write(bytes(str(ups_object.readCurrent()), "utf-8"))     
                 else:
                     self.wfile.write(bytes(str('--')))
             elif (command == '/get_alarm_capacity'):    
@@ -249,7 +281,11 @@ def command_received (cmd, modem = False , telegram = False):
     global email_object
     global email_config
     global upsvoltage
+    global upscurrent
     global upscapacity
+    global exttemp
+    global exthumidity
+
     print ('command reveived : ', cmd)
     check_cmd = cmd.lower()
     if (check_cmd == 'alarm on'):
@@ -258,10 +294,12 @@ def command_received (cmd, modem = False , telegram = False):
     if (check_cmd == 'alarm off'):
         alarm_on = False
         reply = 'Alarm desactivated'
-    if (check_cmd == 'temp'):
+    if (check_cmd == 'cpu'):
         reply = 'CPU Temp : ' + str(MyUtils.get_cputemperature()) +'°C'
     if (check_cmd == 'ups'):
-        reply = 'UPS: ' + f'{upsvoltage:1.2f}' + 'V - ' + f'{upscapacity:3.2f}' + '%'
+        reply = 'UPS: ' + f'{upsvoltage:2.2f}' + 'V - '+ f'{upscurrent:3.2f}' + ' mA - ' + f'{upscapacity:3.2f}' + '%'
+    if (check_cmd == 'temp'):
+        reply = 'TEMP: ' + f'{exttemp:2.2f}' + '°C - '+ f'{exthumidity:3.2f}' + ' %RH'
     return reply
 
 def command_callback_telegram (cmd):
@@ -299,6 +337,8 @@ def main():
     global haswebserver
     global hasserial
     global hashf
+    global hasaws
+    global hastemp
 
     global modem_object
     global loop_object
@@ -309,6 +349,7 @@ def main():
     global webserver_object
     global serial_object
     global ups_object
+    global aws_object
 
     global email_config
     global loop_config
@@ -319,6 +360,7 @@ def main():
     global webserver_config
     global serial_config 
     global hf_config
+    global aws_config
 
     global lastloopstatus
     global lastalarmstate
@@ -326,6 +368,7 @@ def main():
     global alarm_on
     global modemid
     global upsvoltage
+    global upscurrent
     global upscapacity
     global pwlinegetvalue
     global basewebserver
@@ -334,6 +377,9 @@ def main():
     global alimserialvalue
     global alimserialvalid
     global alimseriallow
+
+    global exttemp
+    global exthumidity
 
 
     config = configparser.ConfigParser()
@@ -369,6 +415,10 @@ def main():
             haswebserver = 1
         if global_config["hf"] == "yes":
             hashf = 1
+        if global_config["aws"] == "yes":
+            hasaws = 1
+        if global_config["temp"] == "yes":
+            hastemp = 1
         if global_config["default_state"] == "True":
             alarm_on = True
 
@@ -427,6 +477,18 @@ def main():
         for key in hf_config:
             print(key + ":" + hf_config[key])
 
+    if "AWS" in config:
+        aws_config = config["AWS"]
+        print(aws_config)
+        for key in aws_config:
+            print(key + ":" + aws_config[key])
+
+    if "TEMP" in config:
+        temp_config = config["TEMP"]
+        print(temp_config)
+        for key in temp_config:
+            print(key + ":" + temp_config[key])
+
     if hasmodem:
         modem_object = MyModem()
 
@@ -447,7 +509,7 @@ def main():
         )
 
     if hasups:
-        ups_object = MyUps()
+        ups_object = MyUps('INA219')
 
     if hastelegram:
         telegram_object = MyTelegram(telegram_config["chat_id"],  telegram_config["token"],command_callback_telegram)
@@ -467,6 +529,15 @@ def main():
 
     if hasserial:
         serial_object = MySerial(serial_config["port"],serial_config["speed"],serial_config["bytesize"],serial_config["parity"],serial_config["stop"], command_serial)
+
+    if hasaws:
+        aws_object = MyAws( aws_config["endpoint"] , aws_config["ca_cert"], aws_config["certfile"] , aws_config["keyfile"] , aws_config["topic"], None)
+
+    if hastemp:
+        temp_object = MyTemp (temp_config["type"], temp_config["address"])
+    
+    if aws_object:
+        aws_object.publish_message("Alarm restart")
 
     if serial_object:
         serial_object.write ("Serial open \r\n")
@@ -493,11 +564,14 @@ def main():
         if ups_object:
             upsvoltage = ups_object.readVoltage()
             upscapacity = ups_object.readCapacity()
+            upscurrent = ups_object.readCurrent()
             pwlinegetvalue = ups_object.pwlinegetvalue()
 
             print ('pw connected : ' + str (pwlinegetvalue))
-            print ('Voltage      : ' + str (upsvoltage))
-            print ('Capacity     : ' + str (upscapacity))
+            print ('Voltage      : ' + f'{upsvoltage:2.2f}' + ' V' )
+            print ('Current      : ' + f'{upscurrent:2.2f}' + ' mA' ) 
+            print ('Capacity     : ' + f'{upscapacity:2.2f}' + ' %' )
+
         if modem_object:
             count = modem_object.getcountsms(str(modemid))
             if count > 0:
@@ -572,6 +646,15 @@ def main():
                 )
             if telegram_object:
                 telegram_object.send_message(msg_status)
+
+        if temp_object:
+            exttemp = temp_object.readTemperature()
+            exthumidity = temp_object.readHumidity()
+            if exttemp:
+                print ('Temp ext     : ' + f'{exttemp:2.2f}' + ' °C' )
+            if exthumidity:
+                print ('Humidity ext : ' + f'{exthumidity:2.2f}' + ' %' ) 
+
 
 
         if alarm_on:
