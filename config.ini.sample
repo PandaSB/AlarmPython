@@ -68,7 +68,9 @@ endpoint = xxxxxxxxx.iot.eu-west-3.amazonaws.com
 ca_cert  = ./certs/root-CA.crt
 certfile = ./certs/xxxxxxx.private.key
 keyfile  = ./certs/xxxxxx.cert.pem 
-topic    = Alarm/python
+topicpub = alarm/alarm1/pubsubtopic
+topicsub = alarm/alarm1/pubsubtopic
+
 
 [TEMP]
 type = AM2320

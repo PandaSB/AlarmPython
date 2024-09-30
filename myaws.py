@@ -8,41 +8,63 @@ import paho.mqtt.client as mqtt
 from threading import Thread
 import ssl
 import os
+import json
+
+import logging
+logging.basicConfig(level=logging.INFO)
 
 
 myaws_endpoint = ''
-myaws_topic = ''
+myaws_topicsub = ''
+myaws_topicpub = ''
 
 class MyAws:
     ca_certs = ""
     certfile = ""
     keyfile  = ""
     client   = None 
+    connect = False
+    callback = None
 
-    def on_connect(client, userdata, flags, rc, properties=None, last=None):
+    def on_connect(self , client , userdata,flags, reason, properties = None ):
         global myaws_endpoint
-        global myaws_topic
+        global myaws_topicsub
+        global myaws_topicpub
 
-        print ('connected to endpoint ' + myaws_endpoint + ' with result code '+ str(rc))
+        print ('connected to endpoint ' + myaws_endpoint + ' with result code '+ str (reason))
         print ('userdata: '+ str(userdata) + ', flags: ' + str(flags) + ' properties: ' + str(properties))
 
-        if rc == 0:
+        if reason == 0:
             print("Connected to AWS IoT Core successfully.")
-            print(" subscribing to topic " + self.topic)
-            self.client.subscribe(myaws_topic, qos=0, options=None, properties=None)
+            self.connect = True
+            print(" subscribing to topic " + myaws_topicsub)
+            self.client.subscribe(myaws_topicsub, qos=0, options=None, properties=None)
         else:
-            print(f"Connection error: {rc}")
+            print(f'Connection error:' + str (reason["session present"]))
 
-    def on_message(client, userdata, msg):
+    def on_message(self, client, userdata, msg):
         print ('received message: topic: ' + msg.topic +' payload: '+ msg.payload.decode())
+        data = json.loads (msg.payload.decode())
+        try:
+            cmd = data['cmd']
+            self.callback (cmd)
+        except Exception as e:
+            print ("Message not a command")
+        if (self.callback):
+                self.callback (msg.payload.decode())
+
+    def __on_log(self, client, userdata, level, buf):
+        self.logger.debug("{0}, {1}, {2}, {3}".format(client, userdata, level, buf))
 
     def publish_message(self, message):
-        global myaws_topic
-        try:
-            self.client.publish(myaws_topic, payload=message, qos=1, retain=True)
-            print("Published " + message + " to AWS IoT Core")
-        except Exception as e:
-            print(f"Error publishing message: {e}")
+        global myaws_topicpub
+        print ("Published " + message + " to AWS IoT Core")
+        if (self.connect == True ):
+            try:
+                self.client.publish(myaws_topicpub, payload=message)
+                print("Published ok " + message + 'on ' + myaws_topicpub)
+            except Exception as e:
+                print(f"Error publishing message: {e}")
             
 
     def start_pulling ( self ):
@@ -50,31 +72,30 @@ class MyAws:
         while True:
             time.sleep(1)
 
+    def isconnected(self):
+        return self.connect
 
-
-    def __init__(self, endpoint , ca_certs, keyfile ,  certfile , topic, _callback = None):
+    def __init__(self, endpoint , ca_certs, keyfile ,  certfile , topicpub, topicsub, _callback = None):
             global myaws_endpoint
-            global myaws_topic
+            global myaws_topicsub
+            global myaws_topicpub
             myaws_endpoint  = endpoint
             self.ca_certs  = ca_certs
             self.certfile  = certfile
             self.keyfile   = keyfile
-            myaws_topic    = topic 
+            self.callback = _callback
+            myaws_topicsub    = topicsub
+            myaws_topicpub    = topicpub
 
             print ("endpoint : " + myaws_endpoint)
             print ("ca_certs : " + self.ca_certs)
             print ("certfile : " + self.certfile)
             print ("keyfile  : " + self.keyfile)
-            print ("topic    : " + myaws_topic)
+            print ("topicsub : " + myaws_topicsub)
+            print ("topicpub : " + myaws_topicpub)
   
 
-            for f in [self.ca_certs, self.certfile, self.keyfile]:
-                print ("certificat : "+f)
-                if not os.path.exists(f): 
-                    print("Certificate file(s) not found : " + f)
-                    return
-
-            self.client = mqtt.Client()
+            self.client = mqtt.Client(protocol=mqtt.MQTTv5)
     
             try:
                 self.client.tls_set(ca_certs=self.ca_certs, certfile=self.certfile, keyfile=self.keyfile, cert_reqs=ssl.CERT_REQUIRED, tls_version=ssl.PROTOCOL_TLSv1_2, ciphers=None)
@@ -84,8 +105,13 @@ class MyAws:
 
             self.client.on_connect = self.on_connect
             self.client.on_message = self.on_message
+            self.client.on_log = self.__on_log
     
-            self.client.connect(myaws_endpoint, 8883, 60)
+            result = self.client.connect(host= myaws_endpoint, port=8883, keepalive=60, clean_start=True , properties= None )
+            print ('result connection: ' + str(result))
+
+            if (result == 0 ):
+                print ("Connect ok aws Iot")
 
             thread = Thread(target=self.start_pulling)
             thread.start()
