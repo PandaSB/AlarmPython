@@ -275,7 +275,7 @@ def command_serial ( buffer):
         else:
             print ('Command inconnu : ' + buffer) 
 
-def command_received (cmd, modem = False , telegram = False):
+def command_received (cmd, modem = False , source = None  ):
     reply = None
     global alarm_on
     global email_object
@@ -305,7 +305,17 @@ def command_received (cmd, modem = False , telegram = False):
 def command_callback_telegram (cmd):
     """Command receive by telegram channel"""
     print ('cmd telegram: ' + cmd)
-    msg = command_received (cmd,telegram=True)
+    msg = command_received (cmd,source='telegram')
+    if msg:
+        return msg
+    else:
+        return 'Command unknown'
+
+def command_callback_aws (cmd):
+    """Command receive by aws"""
+    msg = None
+    print ('cmd aws: ' + cmd)
+    msg = command_received (cmd,source='aws')
     if msg:
         return msg
     else:
@@ -531,13 +541,18 @@ def main():
         serial_object = MySerial(serial_config["port"],serial_config["speed"],serial_config["bytesize"],serial_config["parity"],serial_config["stop"], command_serial)
 
     if hasaws:
-        aws_object = MyAws( aws_config["endpoint"] , aws_config["ca_cert"], aws_config["certfile"] , aws_config["keyfile"] , aws_config["topic"], None)
+        aws_object = MyAws( aws_config["endpoint"] , aws_config["ca_cert"], aws_config["certfile"] , aws_config["keyfile"] , aws_config["topicpub"],aws_config["topicsub"],  command_callback_aws)
 
     if hastemp:
         temp_object = MyTemp (temp_config["type"], temp_config["address"])
     
     if aws_object:
-        aws_object.publish_message("Alarm restart")
+        for _ in range(30):
+            if aws_object.isconnected():
+                aws_object.publish_message('{"status":"Alarm restart"}')
+                break
+            else :
+                time.sleep (0.1)
 
     if serial_object:
         serial_object.write ("Serial open \r\n")
@@ -609,6 +624,10 @@ def main():
                 telegram_object.send_message(msg_status)
             lastalarmstate = alarm_on
 
+            if aws_object:
+                if aws_object.isconnected():
+                    aws_object.publish_message('{"status":"' + msg_status + '"}')
+
 
 
         if (alimseriallow == False) and (alimserialvalid == True) and (alimserialvalue  < 1 ):
@@ -629,6 +648,10 @@ def main():
             if telegram_object:
                 telegram_object.send_message(msg_status)
 
+            if aws_object:
+                if aws_object.isconnected():
+                    aws_object.publish_message('{"status":"' + msg_status + '"}')
+
         if (alimseriallow == True) and (alimserialvalid == True) and (alimserialvalue  > 1 ):
             alimseriallow = False
             msg_status = "Alarm retour tension  : " + str (alimserialvalue) + "V"
@@ -646,6 +669,10 @@ def main():
                 )
             if telegram_object:
                 telegram_object.send_message(msg_status)
+
+            if aws_object:
+                if aws_object.isconnected():
+                    aws_object.publish_message('{"status":"' + msg_status + '"}')
 
         if temp_object:
             value = temp_object.readTemperature()
@@ -686,6 +713,10 @@ def main():
                 if telegram_object:
                     telegram_object.send_message(msg_status)
 
+                if aws_object:
+                    if aws_object.isconnected():
+                        aws_object.publish_message('{"status":"' + msg_status + '"}')
+
                 if filename is not None:
                     os.remove(filename)
                 if filename2 is not None:
@@ -698,6 +729,7 @@ def main():
                 if loop and not lastloopstatus:
                     filename = None
                     filename2 = None
+                    msg_status = "Coupure boucle"
                     if usbcamera_object:
                         filename = usbcamera_object.capture_photo()
                     if ipcamera_object:
@@ -706,16 +738,20 @@ def main():
                         email_object.sendmail(
                             email_config["receiver"],
                             "Alarm Detected",
-                            "Detection alarm boucle",
+                            msg_status,
                             filename,
                             filename2,
                         )
                     if modem_object:
                         modem_object.createsms(
-                            modemid, sms_config["receiver"], "Detection Alarm boucle"
+                            modemid, sms_config["receiver"],msg_status
                         )
                     if telegram_object:
-                        telegram_object.send_message("Detection Alarm boucle")
+                        telegram_object.send_message(msg_status)
+
+                    if aws_object:
+                        if aws_object.isconnected():
+                            aws_object.publish_message('{"status":"' + msg_status + '"}')
 
                     if filename is not None:
                         os.remove(filename)
