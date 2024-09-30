@@ -137,23 +137,23 @@ class MyServer(BaseHTTPRequestHandler):
                 self.send_response(200)
                 self.send_header("Content-type", "text/plain")
                 self.end_headers()
-                self.wfile.write(bytes(str(exttemp), "utf-8"))     
+                self.wfile.write(bytes(f'{exttemp:2.2f}', "utf-8"))
             elif (command == '/get_humidity'):
                 self.send_response(200)
                 self.send_header("Content-type", "text/plain")
                 self.end_headers()
-                self.wfile.write(bytes(str(exthumidity), "utf-8"))    
+                self.wfile.write(bytes(f'{exthumidity:2.2f}' , "utf-8"))
             elif (command == '/get_alarm_temp'):
                 self.send_response(200)
                 self.send_header("Content-type", "text/plain")
                 self.end_headers()
-                self.wfile.write(bytes(str(MyUtils.get_cputemperature()), "utf-8"))     
+                self.wfile.write(bytes(f'{MyUtils.get_cputemperature():2.2f}', "utf-8"))
             elif (command == '/get_alarm_tension'):
                 self.send_response(200)
                 self.send_header("Content-type", "text/plain")
                 self.end_headers()
                 if hasups: 
-                    self.wfile.write(bytes(str(ups_object.readVoltage()), "utf-8"))     
+                    self.wfile.write(bytes(f'{ups_object.readVoltage():2.2f}', "utf-8"))
                 else:
                     self.wfile.write(bytes(str('--')))
             elif (command == '/get_alarm_current'):
@@ -161,7 +161,7 @@ class MyServer(BaseHTTPRequestHandler):
                 self.send_header("Content-type", "text/plain")
                 self.end_headers()
                 if hasups: 
-                    self.wfile.write(bytes(str(ups_object.readCurrent()), "utf-8"))     
+                    self.wfile.write(bytes(f'{ups_object.readCurrent():2.2f}', "utf-8"))
                 else:
                     self.wfile.write(bytes(str('--')))
             elif (command == '/get_alarm_capacity'):    
@@ -169,7 +169,7 @@ class MyServer(BaseHTTPRequestHandler):
                 self.send_header("Content-type", "text/plain")
                 self.end_headers()
                 if hasups: 
-                    self.wfile.write(bytes(str(ups_object.readCapacity()), "utf-8"))     
+                    self.wfile.write(bytes(f'{ups_object.readCapacity():2.2f}', "utf-8"))
                 else:
                     self.wfile.write(bytes(str('---')))
             elif (command == '/img1.jpg'):
@@ -648,11 +648,13 @@ def main():
                 telegram_object.send_message(msg_status)
 
         if temp_object:
-            exttemp = temp_object.readTemperature()
-            exthumidity = temp_object.readHumidity()
-            if exttemp:
+            value = temp_object.readTemperature()
+            if value:
+                exttemp = value
                 print ('Temp ext     : ' + f'{exttemp:2.2f}' + ' °C' )
-            if exthumidity:
+            value = temp_object.readHumidity()
+            if value:
+                exthumidity = value
                 print ('Humidity ext : ' + f'{exthumidity:2.2f}' + ' %' ) 
 
 
