@@ -13,6 +13,7 @@ serial = yes
 aws = no
 temp = yes
 siren = yes
+pir = yes
 default_state = False
 
 
@@ -76,6 +77,9 @@ topicsub = alarm/alarm1/pubsubtopic
 defaultmode = auto
 gpio = GPIO26
 timeout = 120
+
+[PIR]
+gpio = GPIO27
 
 [TEMP]
 type = AM2320

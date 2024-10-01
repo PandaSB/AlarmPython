@@ -22,6 +22,7 @@ from mywebserver import MyWebServer
 from myaws import MyAws
 from mytemp import MyTemp
 from mysiren import MySiren
+from mypir import MyPir
 
 
 hasmodem            = 0
@@ -38,6 +39,7 @@ hashf               = 0
 hasaws              = 0 
 hastemp             = 0
 hassiren            = 0
+haspir              = 0
 
 modem_object        = None
 loop_object         = None
@@ -51,14 +53,17 @@ serial_object       = None
 aws_object          = None
 temp_object         = None
 siren_object        = None
+pir_object          = None
 
 lastloopstatus      = False
 loopcheck           = False
 alarm_on            = False
 lastalamstate       = False
 intrusion           = False
+pir                 = False
 lastalarmstate      = False
 lastintrutiontime   = 0
+lastpirtime         = 0
 
 email_config        = None
 loop_config         = None
@@ -71,6 +76,7 @@ hf_config           = None
 aws_config          = None
 temp_config         = None
 siren_config        = None
+pir_config          = None
 
 modemid             = None
 upsvoltage          = None
@@ -261,7 +267,7 @@ def command_serial ( buffer):
             """ gestion infrarouge  """
             if (check_cmd[1] == hf_config['intrusion']):
                 currenttime = int(time.time())
-                print ( "intrusion : " + str(currenttime) + "offset : " +  str (currenttime - lastintrutiontime) )
+                print ( "intrusion : " + str(currenttime) + " offset : " +  str (currenttime - lastintrutiontime) )
                 if currenttime > (lastintrutiontime + 60):
                     lastintrutiontime = currenttime
                     intrusion = True
@@ -355,6 +361,18 @@ def command_callback_modem(cmd):
     if msg:
         modem_object.createsms(modemid, sms_config["receiver"], cmd +'\r\n'+msg)
 
+def callback_pir (value):
+    global pir
+    global lastpirtime
+    if (value == 1):
+        currenttime = int(time.time())
+        print ( "pir  : " + str(currenttime) + " offset : " +  str (currenttime - lastpirtime) )
+
+        if currenttime > (lastpirtime + 60):
+            lastpirtime = currenttime
+            pir = True
+
+
 def main():
     """Main program"""
     print("Alarm app")
@@ -373,6 +391,7 @@ def main():
     global hasaws
     global hastemp
     global hassiren
+    global haspir
 
     global modem_object
     global loop_object
@@ -385,6 +404,7 @@ def main():
     global ups_object
     global aws_object
     global siren_object
+    global pir_object
 
     global email_config
     global loop_config
@@ -397,6 +417,7 @@ def main():
     global hf_config
     global aws_config
     global siren_config
+    global pir_config
 
     global lastloopstatus
     global lastalarmstate
@@ -409,6 +430,7 @@ def main():
     global pwlinegetvalue
     global basewebserver
     global intrusion
+    global pir
 
     global alimserialvalue
     global alimserialvalid
@@ -457,6 +479,8 @@ def main():
             hastemp = 1
         if global_config["siren"] == "yes":
             hassiren = 1
+        if global_config["pir"] == "yes":
+            haspir = 1
         if global_config["default_state"] == "True":
             alarm_on = True
 
@@ -533,6 +557,12 @@ def main():
         for key in temp_config:
             print(key + ":" + temp_config[key])
 
+    if "PIR" in config:
+        pir_config = config["PIR"]
+        print(pir_config)
+        for key in pir_config:
+            print(key + ":" + pir_config[key])
+
     if hasmodem:
         modem_object = MyModem()
 
@@ -582,6 +612,9 @@ def main():
 
     if hastemp:
         temp_object = MyTemp (temp_config["type"], temp_config["address"])
+
+    if haspir:
+        pir_object = MyPir (pir_config["gpio"], callback_pir)
     
     if aws_object:
         for _ in range(30):
@@ -726,8 +759,7 @@ def main():
         if alarm_on:
             print("alarme on ")
 
-            if intrusion:
-                intrusion = False
+            if ((intrusion == True) or (pir == True)):
                 filename = None
                 filename2 = None
                 if siren_object:
@@ -736,7 +768,12 @@ def main():
                     filename = usbcamera_object.capture_photo()
                 if ipcamera_object:
                     filename2 = ipcamera_object.capture_photo()
-                msg_status = "Intrusion "
+                msg_status = ''
+                if intrusion:
+                    msg_status += 'Intrusion '
+                if pir:
+                    msg_status += 'Pir '
+
                 if email_object:
                             email_object.sendmail(
                                 email_config["receiver"],
@@ -760,6 +797,10 @@ def main():
                     os.remove(filename)
                 if filename2 is not None:
                     os.remove(filename2)
+                if intrusion:
+                    intrusion = False
+                if pir:
+                    pir = False
 
             if loop_object:
                 loop = loop_object.pinoutgetvalue()
@@ -799,8 +840,10 @@ def main():
                         os.remove(filename)
                     if filename2 is not None:
                         os.remove(filename2)
+
             lastloopstatus = loop
         time.sleep(1)
+
 
 
 if __name__ == "__main__":
