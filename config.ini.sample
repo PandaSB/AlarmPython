@@ -12,6 +12,7 @@ hf = yes
 serial = yes
 aws = no
 temp = yes
+siren = yes
 default_state = False
 
 
@@ -71,6 +72,10 @@ keyfile  = ./certs/xxxxxx.cert.pem
 topicpub = alarm/alarm1/pubsubtopic
 topicsub = alarm/alarm1/pubsubtopic
 
+[SIREN]
+defaultmode = auto
+gpio = GPIO26
+timeout = 120
 
 [TEMP]
 type = AM2320

@@ -21,6 +21,7 @@ from myups import MyUps
 from mywebserver import MyWebServer
 from myaws import MyAws
 from mytemp import MyTemp
+from mysiren import MySiren
 
 
 hasmodem            = 0
@@ -36,6 +37,7 @@ hasserial           = 0
 hashf               = 0
 hasaws              = 0 
 hastemp             = 0
+hassiren            = 0
 
 modem_object        = None
 loop_object         = None
@@ -48,6 +50,7 @@ webserver_object    = None
 serial_object       = None
 aws_object          = None
 temp_object         = None
+siren_object        = None
 
 lastloopstatus      = False
 loopcheck           = False
@@ -67,6 +70,7 @@ serial_config       = None
 hf_config           = None
 aws_config          = None
 temp_config         = None
+siren_config        = None
 
 modemid             = None
 upsvoltage          = None
@@ -280,6 +284,7 @@ def command_received (cmd, modem = False , source = None  ):
     global alarm_on
     global email_object
     global email_config
+    global siren_object
     global upsvoltage
     global upscurrent
     global upscapacity
@@ -300,6 +305,21 @@ def command_received (cmd, modem = False , source = None  ):
         reply = 'UPS: ' + f'{upsvoltage:2.2f}' + 'V - '+ f'{upscurrent:3.2f}' + ' mA - ' + f'{upscapacity:3.2f}' + '%'
     if (check_cmd == 'temp'):
         reply = 'TEMP: ' + f'{exttemp:2.2f}' + '°C - '+ f'{exthumidity:3.2f}' + ' %RH'
+    if (check_cmd == 'siren on'):
+        siren_object.on()
+        reply = 'Set siren on'
+    if (check_cmd == 'siren off'):
+        siren_object.off()
+        reply = 'Set siren off'
+    if (check_cmd == 'siren force on'):
+        siren_object.setmode(on)
+        siren_object.on(0)
+        reply = 'Set siren on , timeout 0'
+    if (check_cmd == 'siren force off'):
+        siren_object.off()
+        reply = 'Set siren off'
+    if (check_cmd == 'siren status'):
+        reply = 'Siren status = ' + siren_object.ison()
     return reply
 
 def command_callback_telegram (cmd):
@@ -307,9 +327,10 @@ def command_callback_telegram (cmd):
     print ('cmd telegram: ' + cmd)
     msg = command_received (cmd,source='telegram')
     if msg:
-        return msg
+        print ("answer telegram : " + msg)
     else:
-        return 'Command unknown'
+        msg =  'Command unknown'
+    return msg
 
 def command_callback_aws (cmd):
     """Command receive by aws"""
@@ -317,9 +338,11 @@ def command_callback_aws (cmd):
     print ('cmd aws: ' + cmd)
     msg = command_received (cmd,source='aws')
     if msg:
+        print ("answer aws : " + msg)
         return msg
     else:
-        return 'Command unknown'
+        msg = 'Command unknown'
+    return msg
 
 def command_callback_modem(cmd):
     """Command received by modem channel"""
@@ -349,6 +372,7 @@ def main():
     global hashf
     global hasaws
     global hastemp
+    global hassiren
 
     global modem_object
     global loop_object
@@ -360,6 +384,7 @@ def main():
     global serial_object
     global ups_object
     global aws_object
+    global siren_object
 
     global email_config
     global loop_config
@@ -371,6 +396,7 @@ def main():
     global serial_config 
     global hf_config
     global aws_config
+    global siren_config
 
     global lastloopstatus
     global lastalarmstate
@@ -429,6 +455,8 @@ def main():
             hasaws = 1
         if global_config["temp"] == "yes":
             hastemp = 1
+        if global_config["siren"] == "yes":
+            hassiren = 1
         if global_config["default_state"] == "True":
             alarm_on = True
 
@@ -493,6 +521,12 @@ def main():
         for key in aws_config:
             print(key + ":" + aws_config[key])
 
+    if "SIREN" in config:
+        siren_config = config["SIREN"]
+        print(siren_config)
+        for key in siren_config:
+            print(key + ":" + siren_config[key])
+
     if "TEMP" in config:
         temp_config = config["TEMP"]
         print(temp_config)
@@ -542,6 +576,9 @@ def main():
 
     if hasaws:
         aws_object = MyAws( aws_config["endpoint"] , aws_config["ca_cert"], aws_config["certfile"] , aws_config["keyfile"] , aws_config["topicpub"],aws_config["topicsub"],  command_callback_aws)
+
+    if hassiren:
+        siren_object = MySiren(siren_config["defaultmode"] ,siren_config["gpio"] , siren_config["timeout"] )
 
     if hastemp:
         temp_object = MyTemp (temp_config["type"], temp_config["address"])
@@ -693,6 +730,8 @@ def main():
                 intrusion = False
                 filename = None
                 filename2 = None
+                if siren_object:
+                    siren_object.on()
                 if usbcamera_object:
                     filename = usbcamera_object.capture_photo()
                 if ipcamera_object:
@@ -729,6 +768,9 @@ def main():
                 if loop and not lastloopstatus:
                     filename = None
                     filename2 = None
+                    if siren_object:
+                        siren_object.on()
+
                     msg_status = "Coupure boucle"
                     if usbcamera_object:
                         filename = usbcamera_object.capture_photo()
