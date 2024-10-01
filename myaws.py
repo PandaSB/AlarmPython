@@ -40,18 +40,23 @@ class MyAws:
             print(" subscribing to topic " + myaws_topicsub)
             self.client.subscribe(myaws_topicsub, qos=0, options=None, properties=None)
         else:
-            print(f'Connection error:' + str (reason["session present"]))
+            print(f'Connection error:' + str (reason))
+        print ("on connect done")
 
     def on_message(self, client, userdata, msg):
+        reply = None
         print ('received message: topic: ' + msg.topic +' payload: '+ msg.payload.decode())
-        data = json.loads (msg.payload.decode())
         try:
+            data = json.loads (msg.payload.decode())
             cmd = data['cmd']
-            self.callback (cmd)
+            if (self.callback):
+                reply = self.callback (cmd)
         except Exception as e:
             print ("Message not a command")
-        if (self.callback):
-                self.callback (msg.payload.decode())
+        if reply:
+            if (reply != "Command unknown"):
+                message = '{"answer":"'+reply+'"}'
+                self.client.publish(myaws_topicpub, payload=message)
 
     def __on_log(self, client, userdata, level, buf):
         self.logger.debug("{0}, {1}, {2}, {3}".format(client, userdata, level, buf))
