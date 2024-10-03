@@ -7,6 +7,7 @@ import os
 import time
 import shutil
 import datetime
+import subprocess
 from http.server import BaseHTTPRequestHandler
 
 from myemail import MyEmail
@@ -64,6 +65,7 @@ pir                 = False
 lastalarmstate      = False
 lastintrutiontime   = 0
 lastpirtime         = 0
+startalarmdelay     = 0
 
 email_config        = None
 loop_config         = None
@@ -94,6 +96,9 @@ batseriallow        = False
 
 exttemp             = 0.0
 exthumidity         = 0.0         
+
+
+
 
 
 class MyServer(BaseHTTPRequestHandler):
@@ -281,7 +286,9 @@ def command_serial ( buffer):
             print ("Tension Batterie : " + check_cmd[1])
             batserialvalue = float (check_cmd[1])
             batserialvalid = True
-
+        elif (check_cmd[0] == 'arret'):
+            print ("Arret raspberry PI : ")
+            subprocess.Popen(['sudo','shutdown','-h','now'])
         else:
             print ('Command inconnu : ' + buffer) 
 
@@ -439,6 +446,8 @@ def main():
     global exttemp
     global exthumidity
 
+    global startalarmdelay
+
 
     config = configparser.ConfigParser()
     config.read("config.ini")
@@ -483,6 +492,7 @@ def main():
             haspir = 1
         if global_config["default_state"] == "True":
             alarm_on = True
+        alarmdelay = int(global_config["delayalarm"])
 
 
     if "EMAIL" in config:
@@ -644,6 +654,8 @@ def main():
         print("Telegram bot activate")
 
 
+    startalarmdelay = 0
+
     while True:
         print ('Alarm status : ' + str (alarm_on))
         if ups_object:
@@ -758,12 +770,17 @@ def main():
 
         if alarm_on:
             print("alarme on ")
+            if startalarmdelay != 0:
+                currentalarmtime = int(time.time())
+                if currentalarmtime > (startalarmdelay + alarmdelay):
+                    startalarmdelay = 0
+                    if siren_object:
+                        siren_object.on()
 
             if ((intrusion == True) or (pir == True)):
                 filename = None
                 filename2 = None
-                if siren_object:
-                    siren_object.on()
+                startalarmdelay =  int(time.time())
                 if usbcamera_object:
                     filename = usbcamera_object.capture_photo()
                 if ipcamera_object:
@@ -809,9 +826,7 @@ def main():
                 if loop and not lastloopstatus:
                     filename = None
                     filename2 = None
-                    if siren_object:
-                        siren_object.on()
-
+                    startalarmdelay = int(time/time())
                     msg_status = "Coupure boucle"
                     if usbcamera_object:
                         filename = usbcamera_object.capture_photo()
@@ -842,6 +857,10 @@ def main():
                         os.remove(filename2)
 
             lastloopstatus = loop
+        else:
+            startalarmdelay = 0
+            if siren_object:
+                siren_object.off()
         time.sleep(1)
 
 

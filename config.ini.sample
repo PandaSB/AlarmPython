@@ -15,6 +15,7 @@ temp = yes
 siren = yes
 pir = yes
 default_state = False
+delayalarm = 10
 
 
 [EMAIL]
