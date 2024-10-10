@@ -333,6 +333,11 @@ def command_received (cmd, modem = False , source = None  ):
         reply = 'Set siren off'
     if (check_cmd == 'siren status'):
         reply = 'Siren status = ' + siren_object.ison()
+    if (check_cmd) == 'cell info':
+        text = ''
+        if modem_object:
+            text = modem_object.getlocation(str(modemid))
+        reply = 'location : ' + text
     return reply
 
 def command_callback_telegram (cmd):
@@ -668,6 +673,9 @@ def main():
             print ('Voltage      : ' + f'{upsvoltage:2.2f}' + ' V' )
             print ('Current      : ' + f'{upscurrent:2.2f}' + ' mA' ) 
             print ('Capacity     : ' + f'{upscapacity:2.2f}' + ' %' )
+
+        if modem_object:
+                print ('Cellinfo     :\r\n' + modem_object.getlocation(str(modemid)))
 
         if modem_object:
             count = modem_object.getcountsms(str(modemid))
