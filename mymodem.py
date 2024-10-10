@@ -39,6 +39,24 @@ class MyModem:
         """Return Modem id"""
         return self.modemid
 
+    def getlocation(self, modemid):
+        """Return information on location"""
+        if int(self.modemid) >= 0:
+            output, success = self.system_call(
+                "mmcli --modem=" + modemid + " --location-get"
+            )
+            if success:
+                out = output
+            output, success = self.system_call(
+                "mmcli --modem=" + modemid + " -J"
+            )
+            if success:
+                data = json.loads(output)
+                signal = data["modem"]["generic"]["signal-quality"]["value"]
+                out += '\n\rSignal level : ' + signal
+
+                return out
+
     def getpathsms(self, modemid):
         """Return path of sms messages presents"""
         if int(self.modemid) >= 0:
