@@ -24,6 +24,7 @@ from myaws import MyAws
 from mytemp import MyTemp
 from mysiren import MySiren
 from mypir import MyPir
+from mybuzzer import MyBuzzer
 
 
 hasmodem            = 0
@@ -41,6 +42,7 @@ hasaws              = 0
 hastemp             = 0
 hassiren            = 0
 haspir              = 0
+hasbuzzer           = 0
 
 modem_object        = None
 loop_object         = None
@@ -55,6 +57,7 @@ aws_object          = None
 temp_object         = None
 siren_object        = None
 pir_object          = None
+buzzer_object       = None
 
 lastloopstatus      = False
 loopcheck           = False
@@ -79,6 +82,8 @@ aws_config          = None
 temp_config         = None
 siren_config        = None
 pir_config          = None
+buzzer_config       = None
+
 
 modemid             = None
 upsvoltage          = None
@@ -404,6 +409,7 @@ def main():
     global hastemp
     global hassiren
     global haspir
+    global hasbuzzer
 
     global modem_object
     global loop_object
@@ -417,6 +423,7 @@ def main():
     global aws_object
     global siren_object
     global pir_object
+    global buzzer_object
 
     global email_config
     global loop_config
@@ -430,6 +437,7 @@ def main():
     global aws_config
     global siren_config
     global pir_config
+    global buzzer_config
 
     global lastloopstatus
     global lastalarmstate
@@ -495,6 +503,8 @@ def main():
             hassiren = 1
         if global_config["pir"] == "yes":
             haspir = 1
+        if global_config["buzzer"] == "yes":
+            hasbuzzer = 1
         if global_config["default_state"] == "True":
             alarm_on = True
         alarmdelay = int(global_config["delayalarm"])
@@ -578,6 +588,12 @@ def main():
         for key in pir_config:
             print(key + ":" + pir_config[key])
 
+    if "BUZZER" in config:
+        buzzer_config = config["BUZZER"]
+        print(buzzer_config)
+        for key in buzzer_config:
+            print(key + ":" + buzzer_config[key])
+
     if hasmodem:
         modem_object = MyModem()
 
@@ -630,6 +646,9 @@ def main():
 
     if haspir:
         pir_object = MyPir (pir_config["gpio"], callback_pir)
+
+    if hasbuzzer:
+        buzzer_object = MyBuzzer (buzzer_config["gpio"])
     
     if aws_object:
         for _ in range(30):
@@ -695,8 +714,13 @@ def main():
         if lastalarmstate != alarm_on:
             if alarm_on:
                 msg_status = "Alarm on"
+                if buzzer_object:
+                    buzzer_object.setbuzzer (number = 1 , pulse = 1.0 , delay = 0.0)
             else:
                 msg_status = "Alarm off"
+                if buzzer_object:
+                    buzzer_object.setbuzzer (number = 2 , pulse = 0.25 , delay = 0.5)
+
             print ("change alarm status : " + msg_status)
             if email_object:
                         email_object.sendmail(
