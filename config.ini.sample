@@ -14,6 +14,7 @@ aws = no
 temp = yes
 siren = yes
 pir = yes
+buzzer = yes
 default_state = False
 delayalarm = 10
 
@@ -85,3 +86,6 @@ gpio = GPIO27
 [TEMP]
 type = AM2320
 addresse = 0x5C
+
+[BUZZER]
+gpio = GPIO12
