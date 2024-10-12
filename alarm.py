@@ -722,6 +722,12 @@ def main():
                     buzzer_object.setbuzzer (number = 2 , pulse = 0.25 , delay = 0.5)
 
             print ("change alarm status : " + msg_status)
+ 
+            if modem_object:
+                modem_object.createsms(
+                    modemid, sms_config["receiver"], msg_status
+                )
+ 
             if email_object:
                         email_object.sendmail(
                             email_config["receiver"],
@@ -730,10 +736,7 @@ def main():
                             None,
                             None
                         )
-            if modem_object:
-                modem_object.createsms(
-                    modemid, sms_config["receiver"], msg_status
-                )
+ 
             if telegram_object:
                 telegram_object.send_message(msg_status)
             lastalarmstate = alarm_on
@@ -747,6 +750,12 @@ def main():
         if (alimseriallow == False) and (alimserialvalid == True) and (alimserialvalue  < 1 ):
             alimseriallow = True
             msg_status = "Alarm tension basse : " + str (alimserialvalue) + "V"
+
+            if modem_object:
+                modem_object.createsms(
+                    modemid, sms_config["receiver"], msg_status
+                )
+
             if email_object:
                         email_object.sendmail(
                             email_config["receiver"],
@@ -755,10 +764,7 @@ def main():
                             None,
                             None
                         )
-            if modem_object:
-                modem_object.createsms(
-                    modemid, sms_config["receiver"], msg_status
-                )
+
             if telegram_object:
                 telegram_object.send_message(msg_status)
 
@@ -769,6 +775,12 @@ def main():
         if (alimseriallow == True) and (alimserialvalid == True) and (alimserialvalue  > 1 ):
             alimseriallow = False
             msg_status = "Alarm retour tension  : " + str (alimserialvalue) + "V"
+
+            if modem_object:
+                modem_object.createsms(
+                    modemid, sms_config["receiver"], msg_status
+                )
+
             if email_object:
                         email_object.sendmail(
                             email_config["receiver"],
@@ -777,10 +789,7 @@ def main():
                             None,
                             None
                         )
-            if modem_object:
-                modem_object.createsms(
-                    modemid, sms_config["receiver"], msg_status
-                )
+
             if telegram_object:
                 telegram_object.send_message(msg_status)
 
@@ -823,6 +832,11 @@ def main():
                 if pir:
                     msg_status += 'Pir '
 
+                if modem_object:
+                    modem_object.createsms(
+                        modemid, sms_config["receiver"], msg_status
+                    )
+
                 if email_object:
                             email_object.sendmail(
                                 email_config["receiver"],
@@ -831,10 +845,7 @@ def main():
                                 filename,
                                 filename2
                             )
-                if modem_object:
-                    modem_object.createsms(
-                        modemid, sms_config["receiver"], msg_status
-                    )
+
                 if telegram_object:
                     telegram_object.send_message(msg_status)
 
@@ -864,6 +875,12 @@ def main():
                         filename = usbcamera_object.capture_photo()
                     if ipcamera_object:
                         filename2 = ipcamera_object.capture_photo()
+
+                    if modem_object:
+                        modem_object.createsms(
+                            modemid, sms_config["receiver"],msg_status
+                        )
+
                     if email_object:
                         email_object.sendmail(
                             email_config["receiver"],
@@ -872,10 +889,7 @@ def main():
                             filename,
                             filename2,
                         )
-                    if modem_object:
-                        modem_object.createsms(
-                            modemid, sms_config["receiver"],msg_status
-                        )
+
                     if telegram_object:
                         telegram_object.send_message(msg_status)
 
