@@ -42,6 +42,7 @@ class MyModem:
     def getlocation(self, modemid):
         """Return information on location"""
         if int(self.modemid) >= 0:
+            out= ''
             output, success = self.system_call(
                 "mmcli --modem=" + modemid + " --location-get"
             )
