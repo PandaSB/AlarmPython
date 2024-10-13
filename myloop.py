@@ -10,9 +10,12 @@ class MyLoop:
     pinoutlines = None
     inversed = 0
 
-    def __init__(self, in_pinout, in_enable, in_inverse):
+    def __init__(self,  in_enable, in_pinout, in_inverse):
         """Init of loop pinout """
         print("Init loop")
+        print("loop Enable       : " + in_enable)
+        print("loop in 1 pinout  : " + in_pinout)
+        print("loop in 1 inverse : " + in_inverse)
         chip = gpiod.Chip("gpiochip0")
 
         self.inversed = in_inverse

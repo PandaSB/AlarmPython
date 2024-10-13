@@ -62,13 +62,18 @@ buzzer_object       = None
 lastloopstatus      = False
 loopcheck           = False
 alarm_on            = False
+alarm_ring          = False
+alarm_security      = False
 lastalamstate       = False
 intrusion           = False
 pir                 = False
 lastalarmstate      = False
 lastintrutiontime   = 0
 lastpirtime         = 0
+lastserialtime      = 0
 startalarmdelay     = 0
+alarm_zone          = 1
+lastserialcmd       = ""
 
 email_config        = None
 loop_config         = None
@@ -253,6 +258,9 @@ class MyServer(BaseHTTPRequestHandler):
 def command_serial ( buffer):
     reply = None
     global alarm_on
+    global alarm_zone
+    global alarm_ring
+    global alarm_security
     global hashf
     global hf_config
     global intrusion
@@ -261,45 +269,57 @@ def command_serial ( buffer):
     global batserialvalue
     global batserialvalid
     global lastintrutiontime
+    global lastserialtime
+    global lastserialcmd
 
     check_cmd = buffer.lower().split()
+    currenttime = int(time.time())
     if (len(check_cmd) > 0):
-        if (check_cmd[0] == 'hfrecu'):
-            """ gestion alarme télécommande """
-            if (check_cmd[1] == hf_config['onalarm']):
-                print ("alarme on : ")
-                alarm_on = True
-            if (check_cmd[1] == hf_config['offalarm']):
-                print ("alarme off : ")
-                alarm_on = False
-            """ fin gestion alarme télécommande  """
+        if (currenttime > (lastserialtime + 2)) or ( buffer != lastserialcmd):
+            lastserialtime = currenttime
+            lastserialcmd = buffer
+            if (check_cmd[0] == 'hfrecu'):
+                if (check_cmd[1] == hf_config['onalarm'].lower()):
+                    print ("alarme on : ")
+                    alarm_on = True
+                    alarm_zone = 1
+                if (check_cmd[1] == hf_config['homealarm'].lower()):
+                    print ("alarme home : ")
+                    alarm_on = True
+                    alarm_zone = 2
+                if (check_cmd[1] == hf_config['offalarm'].lower()):
+                    print ("alarme off : ")
+                    alarm_on = False
+                if (check_cmd[1] == hf_config['security'].lower()):
+                    print ("alarme security : ")
+                    alarm_security = True
+                if (check_cmd[1] == hf_config['ring'].lower()):
+                    print ("alarme ring : ")
+                    alarm_ring = True
+                if (check_cmd[1] == hf_config['intrusion'].lower()):
+                    print ( "intrusion : " + str(currenttime) + " offset : " +  str (currenttime - lastintrutiontime) )
+                    if currenttime > (lastintrutiontime + 60):
+                        lastintrutiontime = currenttime
+                        intrusion = True
+            elif (check_cmd[0] == 'alim'):
+                print ("Tension alim: " + check_cmd[1])
+                alimserialvalue = float (check_cmd[1])
+                alimserialvalid = True
+            elif (check_cmd[0] == 'bat'):
+                print ("Tension Batterie : " + check_cmd[1])
+                batserialvalue = float (check_cmd[1])
+                batserialvalid = True
+            elif (check_cmd[0] == 'arret'):
+                print ("Arret raspberry PI : ")
+                subprocess.Popen(['sudo','shutdown','-h','now'])
+            else:
+                print ('Command inconnu : ' + buffer)
 
-            """ gestion infrarouge  """
-            if (check_cmd[1] == hf_config['intrusion']):
-                currenttime = int(time.time())
-                print ( "intrusion : " + str(currenttime) + " offset : " +  str (currenttime - lastintrutiontime) )
-                if currenttime > (lastintrutiontime + 60):
-                    lastintrutiontime = currenttime
-                    intrusion = True
-
-            """ fin gestion infrarouge """
-        elif (check_cmd[0] == 'alim'):
-            print ("Tension alim: " + check_cmd[1])
-            alimserialvalue = float (check_cmd[1])
-            alimserialvalid = True
-        elif (check_cmd[0] == 'bat'):
-            print ("Tension Batterie : " + check_cmd[1])
-            batserialvalue = float (check_cmd[1])
-            batserialvalid = True
-        elif (check_cmd[0] == 'arret'):
-            print ("Arret raspberry PI : ")
-            subprocess.Popen(['sudo','shutdown','-h','now'])
-        else:
-            print ('Command inconnu : ' + buffer) 
 
 def command_received (cmd, modem = False , source = None  ):
     reply = None
     global alarm_on
+    global alarm_zone
     global email_object
     global email_config
     global siren_object
@@ -313,7 +333,12 @@ def command_received (cmd, modem = False , source = None  ):
     check_cmd = cmd.lower()
     if (check_cmd == 'alarm on'):
         alarm_on = True
+        alarm_zone = 1
         reply = 'Alarm activated'
+    if (check_cmd == 'alarm home'):
+        alarm_on = True
+        alarm_zone = 2
+        reply = 'Alarm home activated'
     if (check_cmd == 'alarm off'):
         alarm_on = False
         reply = 'Alarm desactivated'
@@ -443,6 +468,9 @@ def main():
     global lastalarmstate
     global loopcheck
     global alarm_on
+    global alarm_zone
+    global alarm_ring
+    global alarm_security
     global modemid
     global upsvoltage
     global upscurrent
@@ -507,6 +535,7 @@ def main():
             hasbuzzer = 1
         if global_config["default_state"] == "True":
             alarm_on = True
+        alarm_zone = int (global_config["default_zone"])
         alarmdelay = int(global_config["delayalarm"])
 
 
@@ -599,9 +628,9 @@ def main():
 
     if hasloop:
         loop_object = MyLoop(
-            loop_config["loop_pin"],
             loop_config["loop_enable"],
-            loop_config["loop_invert"],
+            loop_config["loop1_pin"],
+            loop_config["loop1_invert"],
         )
         loopcheck = loop_config["default_loop_check"]
 
@@ -694,9 +723,6 @@ def main():
             print ('Capacity     : ' + f'{upscapacity:2.2f}' + ' %' )
 
         if modem_object:
-                print ('Cellinfo     :\r\n' + modem_object.getlocation(str(modemid)))
-
-        if modem_object:
             count = modem_object.getcountsms(str(modemid))
             if count > 0:
                 paths = modem_object.getpathsms(str(modemid))
@@ -719,7 +745,7 @@ def main():
             else:
                 msg_status = "Alarm off"
                 if buzzer_object:
-                    buzzer_object.setbuzzer (number = 2 , pulse = 0.25 , delay = 0.5)
+                    buzzer_object.setbuzzer (number = 2 , pulse = 0.25 , delay = 0.25)
 
             print ("change alarm status : " + msg_status)
  
@@ -807,7 +833,45 @@ def main():
                 exthumidity = value
                 print ('Humidity ext : ' + f'{exthumidity:2.2f}' + ' %' ) 
 
+        if alarm_ring:
+            filename = None
+            filename2 = None
 
+            if buzzer_object:
+                buzzer_object.setbuzzer (number = 10 , pulse = 0.1 , delay = 0.1)
+            if usbcamera_object:
+                filename = usbcamera_object.capture_photo()
+            if ipcamera_object:
+                filename2 = ipcamera_object.capture_photo()
+            msg_status = 'Ring'
+
+            if modem_object:
+                modem_object.createsms(
+                    modemid, sms_config["receiver"], msg_status
+                )
+
+            if email_object:
+                email_object.sendmail(
+                    email_config["receiver"],
+                    "Ring",
+                    msg_status,
+                    filename,
+                    filename2
+                )
+
+            if telegram_object:
+                telegram_object.send_message(msg_status)
+
+            if aws_object:
+                if aws_object.isconnected():
+                    aws_object.publish_message('{"status":"' + msg_status + '"}')
+
+            if filename is not None:
+                os.remove(filename)
+            if filename2 is not None:
+                os.remove(filename2)
+            if alarm_ring:
+                alarm_ring = False
 
         if alarm_on:
             print("alarme on ")
@@ -817,11 +881,14 @@ def main():
                     startalarmdelay = 0
                     if siren_object:
                         siren_object.on()
+                        buzzer_object.clearbuzzer()
 
-            if ((intrusion == True) or (pir == True)):
+            if ((intrusion == True) or (pir == True) or ( alarm_security == True)):
                 filename = None
                 filename2 = None
                 startalarmdelay =  int(time.time())
+                if buzzer_object:
+                    buzzer_object.setbuzzer (number = alarmdelay , pulse = 0.25 , delay = 0.75)
                 if usbcamera_object:
                     filename = usbcamera_object.capture_photo()
                 if ipcamera_object:
@@ -831,6 +898,10 @@ def main():
                     msg_status += 'Intrusion '
                 if pir:
                     msg_status += 'Pir '
+                if alarm_security:
+                    msg_status += 'Security keyboard '
+                if msg_status == '':
+                    msg_status = "Unknown"
 
                 if modem_object:
                     modem_object.createsms(
@@ -838,13 +909,13 @@ def main():
                     )
 
                 if email_object:
-                            email_object.sendmail(
-                                email_config["receiver"],
-                                "Alarm change",
-                                msg_status,
-                                filename,
-                                filename2
-                            )
+                    email_object.sendmail(
+                        email_config["receiver"],
+                        "Alarm change",
+                        msg_status,
+                        filename,
+                        filename2
+                    )
 
                 if telegram_object:
                     telegram_object.send_message(msg_status)
@@ -861,6 +932,8 @@ def main():
                     intrusion = False
                 if pir:
                     pir = False
+                if alarm_security:
+                    alarm_security = False
 
             if loop_object:
                 loop = loop_object.pinoutgetvalue()
@@ -869,7 +942,7 @@ def main():
                 if loop and not lastloopstatus:
                     filename = None
                     filename2 = None
-                    startalarmdelay = int(time/time())
+                    startalarmdelay = int(time.time())
                     msg_status = "Coupure boucle"
                     if usbcamera_object:
                         filename = usbcamera_object.capture_photo()
@@ -907,6 +980,9 @@ def main():
             startalarmdelay = 0
             if siren_object:
                 siren_object.off()
+            intrusion = False
+            pir = False
+            alarm_security = False
         time.sleep(1)
 
 
