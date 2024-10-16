@@ -515,6 +515,7 @@ def main():
 
 
     config = configparser.ConfigParser()
+    last = configparser.ConfigParser()
     config.read("config.ini")
     if (len (config.sections()) == 0):
         print ("config file missing !")
@@ -560,19 +561,18 @@ def main():
         if global_config["default_state"] == "True":
             alarm_on = True
             alarm_zone = int (global_config["default_zone"])
-            last['STATUS'] = {  'alarm': 'True' , 
+            last['STATUS'] = {  'alarm': 'True' ,
                                 'zone' : global_config["default_zone"]} 
             with open('last.ini', 'w') as configfile:
                 last.write(configfile)              
         if global_config["default_state"] == "False":
-            alarm_on = True
-            last['STATUS'] = {  'alarm': 'Fale' , 
+            alarm_on = False
+            last['STATUS'] = {  'alarm': 'False' ,
                                 'zone' : global_config["default_zone"]} 
             with open('last.ini', 'w') as configfile:
                 last.write(configfile)              
 
         if global_config["default_state"] == "Last":
-            last = configparser.ConfigParser()
             last.read("last.ini")
             if (len (last.sections()) == 0):
                 print ("last status  file missing !")
@@ -586,7 +586,7 @@ def main():
             else:
                 alarm_on = False
 
-        alarm_zone = last['STATUS']['zone']
+        alarm_zone = int (last['STATUS']['zone'])
         alarmdelay = int(global_config["delayalarm"])
 
 
@@ -811,7 +811,7 @@ def main():
             if alarm_on:
                 msg_status = "Alarm on"
                 last['STATUS'] = {'alarm': 'True' , 
-                                  'zone' : alarm_zone } 
+                                  'zone' : str(alarm_zone)}
                 with open('last.ini', 'w') as configfile:
                     last.write(configfile)        
                 if buzzer_object:
@@ -819,7 +819,7 @@ def main():
             else:
                 msg_status = "Alarm off"
                 last['STATUS'] = {'alarm': 'False' , 
-                                  'zone' : alarm_zone } 
+                                  'zone' : str(alarm_zone)}
                 with open('last.ini', 'w') as configfile:
                     last.write(configfile)     
                 if buzzer_object:
@@ -963,6 +963,7 @@ def main():
                         buzzer_object.clearbuzzer()
 
             alarm_detect = False
+
             if ((alarm_zone == 1) and (zone1_config["intrusion"] == 'yes') ) or ((alarm_zone == 2) and (zone2_config["intrusion"] == 'yes')) : 
                 if intrusion == True: 
                     alarm_detect = True
