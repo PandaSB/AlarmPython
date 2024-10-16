@@ -368,7 +368,7 @@ def command_received (cmd, modem = False , source = None  ):
         siren_object.off()
         reply = 'Set siren off'
     if (check_cmd == 'siren force on'):
-        siren_object.setmode(on)
+        siren_object.setmode('on')
         siren_object.on(0)
         reply = 'Set siren on , timeout 0'
     if (check_cmd == 'siren force off'):
