@@ -15,7 +15,7 @@ temp = yes
 siren = yes
 pir = yes
 buzzer = yes
-default_state = False
+default_state = Last
 delayalarm = 10
 
 
@@ -27,9 +27,16 @@ port = 465
 server = smtp.example.com
 
 [LOOP]
-loop_invert = 1
-loop_pin = GPIO17
-loop_enable = GPIO18
+loop1_invert = 1
+loop1_pin = GPIO18
+loop2_invert = 1
+loop2_pin = GPIO23
+loop3_invert = 1
+loop3_pin = GPIO24
+loop4_invert = 1
+loop4_pin = GPIO25
+
+loop_enable = GPIO17
 default_loop_check = 1
 
 [TELEGRAM]
@@ -89,3 +96,20 @@ addresse = 0x5C
 
 [BUZZER]
 gpio = GPIO12
+
+[ZONE1]
+loop1 = yes
+loop2 = yes
+loop3 = yes
+loop4 = yes
+pir   = yes
+intrusion = yes
+security = yes
+
+[ZONE2]
+loop1 = yes
+loop2 = yes
+loop3 = no
+loop4 = no
+pir   = no
+intrusion = no

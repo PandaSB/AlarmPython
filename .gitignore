@@ -1,5 +1,6 @@
 # Config file
 config.ini
+last.ini
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
