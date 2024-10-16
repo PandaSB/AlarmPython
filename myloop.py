@@ -40,7 +40,7 @@ class MyLoop:
         self.enablelines.request(
             consumer="alarm", type=gpiod.LINE_REQ_DIR_OUT, default_vals=[0]
         )
-        self.enablelines.set_values([1])
+        self.enablelines.set_values([0])
 
 
         if in_pinout1 != '-1' : 

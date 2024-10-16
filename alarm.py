@@ -777,7 +777,8 @@ def main():
 
 
     startalarmdelay = 0
-
+    if loop_object:
+        loop_object.enablesetvalue(alarm_on)
     while True:
         print ('Alarm status : ' + str (alarm_on))
         if ups_object:
@@ -825,7 +826,8 @@ def main():
                     buzzer_object.setbuzzer (number = 2 , pulse = 0.25 , delay = 0.25)
 
             print ("change alarm status : " + msg_status)
- 
+            if loop_object:
+                loop_object.enablesetvalue(alarm_on)
             if modem_object:
                 modem_object.createsms(
                     modemid, sms_config["receiver"], msg_status
