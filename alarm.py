@@ -88,6 +88,8 @@ temp_config         = None
 siren_config        = None
 pir_config          = None
 buzzer_config       = None
+zone1_config        = None
+zone2_config        = None
 
 
 modemid             = None
@@ -105,7 +107,9 @@ batserialvalid      = False
 batseriallow        = False
 
 exttemp             = 0.0
-exthumidity         = 0.0         
+exthumidity         = 0.0      
+
+last                = None 
 
 
 
@@ -271,6 +275,7 @@ def command_serial ( buffer):
     global lastintrutiontime
     global lastserialtime
     global lastserialcmd
+    global last
 
     check_cmd = buffer.lower().split()
     currenttime = int(time.time())
@@ -314,6 +319,14 @@ def command_serial ( buffer):
                 subprocess.Popen(['sudo','shutdown','-h','now'])
             else:
                 print ('Command inconnu : ' + buffer)
+    if alarm_on:
+        last['STATUS']['alarm'] = 'True'
+    else:
+        last['STATUS']['alarm'] = 'False'
+    last['STATUS']['zone'] = str(alarm_zone)
+    with open('last.ini', 'w') as configfile:
+        last.write(configfile)      
+
 
 
 def command_received (cmd, modem = False , source = None  ):
@@ -368,6 +381,13 @@ def command_received (cmd, modem = False , source = None  ):
         if modem_object:
             text = modem_object.getlocation(str(modemid))
         reply = 'location : ' + text
+    if alarm_on:
+        last['STATUS']['alarm'] = 'True'
+    else:
+        last['STATUS']['alarm'] = 'False'
+    last['STATUS']['zone'] = str(alarm_zone)
+    with open('last.ini', 'w') as configfile:
+        last.write(configfile)    
     return reply
 
 def command_callback_telegram (cmd):
@@ -463,6 +483,8 @@ def main():
     global siren_config
     global pir_config
     global buzzer_config
+    global zone1_config
+    global zone2_config
 
     global lastloopstatus
     global lastalarmstate
@@ -488,6 +510,8 @@ def main():
     global exthumidity
 
     global startalarmdelay
+
+    global last
 
 
     config = configparser.ConfigParser()
@@ -535,7 +559,34 @@ def main():
             hasbuzzer = 1
         if global_config["default_state"] == "True":
             alarm_on = True
-        alarm_zone = int (global_config["default_zone"])
+            alarm_zone = int (global_config["default_zone"])
+            last['STATUS'] = {  'alarm': 'True' , 
+                                'zone' : global_config["default_zone"]} 
+            with open('last.ini', 'w') as configfile:
+                last.write(configfile)              
+        if global_config["default_state"] == "False":
+            alarm_on = True
+            last['STATUS'] = {  'alarm': 'Fale' , 
+                                'zone' : global_config["default_zone"]} 
+            with open('last.ini', 'w') as configfile:
+                last.write(configfile)              
+
+        if global_config["default_state"] == "Last":
+            last = configparser.ConfigParser()
+            last.read("last.ini")
+            if (len (last.sections()) == 0):
+                print ("last status  file missing !")
+                last['STATUS'] = {  'alarm': 'True' , 
+                                     'zone' : global_config["default_zone"]} 
+                print(last.sections())    
+                with open('last.ini', 'w') as configfile:
+                    last.write(configfile)        
+            if last['STATUS']['alarm'] == "True":
+                alarm_on = True
+            else:
+                alarm_on = False
+
+        alarm_zone = last['STATUS']['zone']
         alarmdelay = int(global_config["delayalarm"])
 
 
@@ -623,6 +674,18 @@ def main():
         for key in buzzer_config:
             print(key + ":" + buzzer_config[key])
 
+    if "ZONE1" in config:
+        zone1_config = config["ZONE1"]
+        print(zone1_config)
+        for key in zone1_config:
+            print(key + ":" + zone1_config[key])
+
+    if "ZONE2" in config:
+        zone2_config = config["ZONE2"]
+        print(zone2_config)
+        for key in zone2_config:
+            print(key + ":" + zone2_config[key])
+
     if hasmodem:
         modem_object = MyModem()
 
@@ -631,6 +694,12 @@ def main():
             loop_config["loop_enable"],
             loop_config["loop1_pin"],
             loop_config["loop1_invert"],
+            loop_config["loop2_pin"],
+            loop_config["loop2_invert"],
+            loop_config["loop3_pin"],
+            loop_config["loop3_invert"],
+            loop_config["loop4_pin"],
+            loop_config["loop4_invert"], 
         )
         loopcheck = loop_config["default_loop_check"]
 
@@ -740,10 +809,18 @@ def main():
         if lastalarmstate != alarm_on:
             if alarm_on:
                 msg_status = "Alarm on"
+                last['STATUS'] = {'alarm': 'True' , 
+                                  'zone' : alarm_zone } 
+                with open('last.ini', 'w') as configfile:
+                    last.write(configfile)        
                 if buzzer_object:
                     buzzer_object.setbuzzer (number = 1 , pulse = 1.0 , delay = 0.0)
             else:
                 msg_status = "Alarm off"
+                last['STATUS'] = {'alarm': 'False' , 
+                                  'zone' : alarm_zone } 
+                with open('last.ini', 'w') as configfile:
+                    last.write(configfile)     
                 if buzzer_object:
                     buzzer_object.setbuzzer (number = 2 , pulse = 0.25 , delay = 0.25)
 
@@ -883,7 +960,18 @@ def main():
                         siren_object.on()
                         buzzer_object.clearbuzzer()
 
-            if ((intrusion == True) or (pir == True) or ( alarm_security == True)):
+            alarm_detect = False
+            if ((alarm_zone == 1) and (zone1_config["intrusion"] == 'yes') ) or ((alarm_zone == 2) and (zone2_config["intrusion"] == 'yes')) : 
+                if intrusion == True: 
+                    alarm_detect = True
+            if ((alarm_zone == 1) and (zone1_config["pir"] == 'yes') ) or ((alarm_zone == 2) and (zone2_config["pir"] == 'yes')) : 
+                if pir == True: 
+                    alarm_detect = True
+            if ((alarm_zone == 1) and (zone1_config["security"] == 'yes') ) or ((alarm_zone == 2) and (zone2_config["security"] == 'yes')) : 
+                if alarm_security == True: 
+                    alarm_detect = True
+
+            if alarm_detect == True:
                 filename = None
                 filename2 = None
                 startalarmdelay =  int(time.time())
@@ -936,13 +1024,28 @@ def main():
                     alarm_security = False
 
             if loop_object:
-                loop = loop_object.pinoutgetvalue()
+                loop = False
+                if ((alarm_zone == 1) and (zone1_config["loop1"] == 'yes') ) or ((alarm_zone == 2) and (zone2_config["loop1"] == 'yes')) : 
+                    if loop_object.pinoutgetvalue(1) == True: 
+                        loop = True
+                if ((alarm_zone == 1) and (zone1_config["loop2"] == 'yes') ) or ((alarm_zone == 2) and (zone2_config["loop2"] == 'yes')) : 
+                    if loop_object.pinoutgetvalue(2) == True: 
+                        loop = True
+                if ((alarm_zone == 1) and (zone1_config["loop3"] == 'yes') ) or ((alarm_zone == 2) and (zone2_config["loop3"] == 'yes')) : 
+                    if loop_object.pinoutgetvalue(3) == True: 
+                        loop = True
+                if ((alarm_zone == 1) and (zone1_config["loop4"] == 'yes') ) or ((alarm_zone == 2) and (zone2_config["loop4"] == 'yes')) : 
+                    if loop_object.pinoutgetvalue(4) == True: 
+                        loop = True        
                 print("line " + str(loop))
+
             if loop and loopcheck:
                 if loop and not lastloopstatus:
                     filename = None
                     filename2 = None
                     startalarmdelay = int(time.time())
+                    if buzzer_object:
+                        buzzer_object.setbuzzer (number = alarmdelay , pulse = 0.25 , delay = 0.75)
                     msg_status = "Coupure boucle"
                     if usbcamera_object:
                         filename = usbcamera_object.capture_photo()

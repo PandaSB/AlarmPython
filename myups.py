@@ -81,9 +81,12 @@ class MyUps:
         """This function returns as float the voltage from the Raspi UPS Hat via the provided SMBus object on MAX17040 """
         voltage = -1,0
         if self.upstype == UPS_TYPE_MAX17040:
-            read = self.bus.read_word_data(self.addr, 0X02)
-            swapped = struct.unpack("<H", struct.pack(">H", read))[0]
-            voltage = swapped * 1.25 /1000/16
+            try:
+                read = self.bus.read_word_data(self.addr, 0X02)
+                swapped = struct.unpack("<H", struct.pack(">H", read))[0]
+                voltage = swapped * 1.25 /1000/16
+            except IOError:
+                voltage = 0.0
         elif self.upstype == UPS_TYPE_INA219:
             self.write(_REG_CALIBRATION,self._cal_value)
             self.read(_REG_BUSVOLTAGE)
@@ -123,9 +126,12 @@ class MyUps:
         """This function returns as a float the remaining capacity of the battery connected to the Raspi UPS Hat via the provided SMBus object on MAX17040"""
         capacity = 0.0
         if self.upstype == UPS_TYPE_MAX17040:
-            read = self.bus.read_word_data(self.addr, 0X04)
-            swapped = struct.unpack("<H", struct.pack(">H", read))[0]
-            capacity = swapped/256
+            try:
+                read = self.bus.read_word_data(self.addr, 0X04)
+                swapped = struct.unpack("<H", struct.pack(">H", read))[0]
+                capacity = swapped/256
+            except IOError:
+                capacity = 0.0
         elif self.upstype == UPS_TYPE_INA219:
             bus_voltage = self.readVoltage()
             capacity = (bus_voltage - 6)/2.4*100
@@ -140,7 +146,10 @@ class MyUps:
     def QuickStart(self):
         """Quick start UPS chipset"""
         if self.upstype == UPS_TYPE_MAX17040:
-            self.bus.write_word_data(self.addr, 0x06,0x4000)
+            try:
+                self.bus.write_word_data(self.addr, 0x06,0x4000)
+            except IOError : 
+                print ("Error I2C Write")
         elif self.upstype == UPS_TYPE_INA219:
             print ('Quick start')
         else:
@@ -149,7 +158,10 @@ class MyUps:
     def PowerOnReset(self):
         """Power reset of UPS device MAX17040"""
         if self.upstype == UPS_TYPE_MAX17040:
-            self.bus.write_word_data(self.addr, 0xfe,0x0054)
+            try:
+                self.bus.write_word_data(self.addr, 0xfe,0x0054)
+            except IOError : 
+                print ("Error I2C Write")            
         elif self.upstype == UPS_TYPE_INA219:
             print ('Power on Reset')
         else:
@@ -168,14 +180,20 @@ class MyUps:
         return value
 
     def read(self,address):
-        data = self.bus.read_i2c_block_data(self.addr, address, 2)
+        try:
+            data = self.bus.read_i2c_block_data(self.addr, address, 2)
+        except IOError:
+            return (0)
         return ((data[0] * 256 ) + data[1])
 
     def write(self,address,data):
         temp = [0,0]
         temp[1] = data & 0xFF
         temp[0] =(data & 0xFF00) >> 8
-        self.bus.write_i2c_block_data(self.addr,address,temp)
+        try:
+            self.bus.write_i2c_block_data(self.addr,address,temp)
+        except IOError:
+            print ("Error I2C write")
 
 
     def __init__(self, upstype=UPS_TYPE_MAX17040):
