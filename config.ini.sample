@@ -11,12 +11,15 @@ webserver = yes
 hf = yes
 serial = yes
 aws = no
+mqtt = no
 temp = yes
 siren = yes
 pir = yes
 buzzer = yes
 default_state = Last
+default_zone  = 1
 delayalarm = 10
+hearbeat = no
 
 
 [EMAIL]
@@ -48,7 +51,6 @@ token = 0000000000:xxxxxxxxxxxxxxxxxxxxxxxxxxx
 receiver = +33600000000
 password = TestPassword
 
-
 [USBCAMERA]
 port= /dev/video0
 
@@ -72,6 +74,9 @@ stop = 1
 [HF]
 onalarm   = 00000001
 offalarm  = 00000002
+homealarm = 00000004
+ring      = 00000005
+security  = 00000006
 intrusion = 00000003
 
 [AWS]
@@ -81,6 +86,15 @@ certfile = ./certs/xxxxxxx.private.key
 keyfile  = ./certs/xxxxxx.cert.pem 
 topicpub = alarm/alarm1/pubsubtopic
 topicsub = alarm/alarm1/pubsubtopic
+
+
+[MQTT]
+endpoint = www.example.com
+port = 8080
+user = UserMqtt
+password = PasswordMqtt
+topicsub    = alarm/alarm1/pubsubtopic
+topicpub    = alarm/alarm1/pubsubtopic
 
 [SIREN]
 defaultmode = auto
@@ -96,6 +110,9 @@ addresse = 0x5C
 
 [BUZZER]
 gpio = GPIO12
+
+[HEARTBEAT]
+delay = 120
 
 [ZONE1]
 loop1 = yes
