@@ -5,6 +5,7 @@
 import configparser
 import os
 import time
+import json
 import shutil
 import datetime
 import subprocess
@@ -20,6 +21,7 @@ from myserial import MySerial
 from myutils import MyUtils
 from myups import MyUps
 from mywebserver import MyWebServer
+from mymqtt import MyMqtt
 from myaws import MyAws
 from mytemp import MyTemp
 from mysiren import MySiren
@@ -39,10 +41,12 @@ haswebserver        = 0
 hasserial           = 0 
 hashf               = 0
 hasaws              = 0 
+hasmqtt             = 0
 hastemp             = 0
 hassiren            = 0
 haspir              = 0
 hasbuzzer           = 0
+hasheartbeat        = 0
 
 modem_object        = None
 loop_object         = None
@@ -54,6 +58,7 @@ ups_object          = None
 webserver_object    = None
 serial_object       = None
 aws_object          = None
+mqtt_object         = None
 temp_object         = None
 siren_object        = None
 pir_object          = None
@@ -72,6 +77,7 @@ lastintrutiontime   = 0
 lastpirtime         = 0
 lastserialtime      = 0
 startalarmdelay     = 0
+heartbeattime       = 0
 alarm_zone          = 1
 lastserialcmd       = ""
 
@@ -83,11 +89,13 @@ usbcamera_config    = None
 ipcamera_config     = None
 serial_config       = None
 hf_config           = None
+mqtt_config         = None
 aws_config          = None
 temp_config         = None
 siren_config        = None
 pir_config          = None
 buzzer_config       = None
+heartbeat_config    = None
 zone1_config        = None
 zone2_config        = None
 
@@ -347,20 +355,28 @@ def command_received (cmd, modem = False , source = None  ):
     if (check_cmd == 'alarm on'):
         alarm_on = True
         alarm_zone = 1
-        reply = 'Alarm activated'
+        reply = 'Alarm on zone 1'
     if (check_cmd == 'alarm home'):
         alarm_on = True
         alarm_zone = 2
-        reply = 'Alarm home activated'
+        reply = 'Alarm on zone 2'
     if (check_cmd == 'alarm off'):
         alarm_on = False
-        reply = 'Alarm desactivated'
+        reply = 'Alarm off'
+    if (check_cmd == 'alarm status'):
+            if alarm_on:
+                if alarm_zone == 1:
+                    reply = "alarm on zone 1"
+                else:
+                    reply = "alarm on zone 2"
+            else:
+                reply = "alarm off"
     if (check_cmd == 'cpu'):
         reply = 'CPU Temp : ' + str(MyUtils.get_cputemperature()) +'°C'
     if (check_cmd == 'ups'):
-        reply = 'UPS: ' + f'{upsvoltage:2.2f}' + 'V - '+ f'{upscurrent:3.2f}' + ' mA - ' + f'{upscapacity:3.2f}' + '%'
+        reply = 'UPS: ' + f'{upsvoltage:2.2f}' + 'V / '+ f'{upscurrent:3.2f}' + ' mA / ' + f'{upscapacity:3.2f}' + '%'
     if (check_cmd == 'temp'):
-        reply = 'TEMP: ' + f'{exttemp:2.2f}' + '°C - '+ f'{exthumidity:3.2f}' + ' %RH'
+        reply = 'TEMP: ' + f'{exttemp:2.2f}' + '°C / '+ f'{exthumidity:3.2f}' + ' %RH'
     if (check_cmd == 'siren on'):
         siren_object.on()
         reply = 'Set siren on'
@@ -400,17 +416,26 @@ def command_callback_telegram (cmd):
         msg =  'Command unknown'
     return msg
 
-def command_callback_aws (cmd):
+def command_callback_mqtt (cmd):
     """Command receive by aws"""
     msg = None
-    print ('cmd aws: ' + cmd)
+    print ('string  aws: ' + cmd)
     msg = command_received (cmd,source='aws')
     if msg:
-        print ("answer aws : " + msg)
-        return msg
+        print ("answer aws mqtt : " + msg)
+        out = {}
+        out['answer'] = msg
+        out['serialnumber'] = MyUtils.get_serialnumber()
+        json_data = json.dumps(out)
+        return json_data
     else:
-        msg = 'Command unknown'
+        msg =  'Command unknown'
     return msg
+
+def command_callback_aws (cmd):
+    """Command receive by aws"""
+    return (command_callback_mqtt(cmd))
+
 
 def command_callback_modem(cmd):
     """Command received by modem channel"""
@@ -435,6 +460,51 @@ def callback_pir (value):
             pir = True
 
 
+def send_status (title , msg_status, filename1,filename2):
+    """Send status to Email / Telegram / Mqtt  / Aws / SMS  """
+    global email_object
+    global email_config
+
+    global telegram_object
+
+    global modem_object
+    global sms_config
+    global modemid
+
+    global aws_object
+    global mqtt_object
+
+    if modem_object:
+        modem_object.createsms(
+            modemid, sms_config["receiver"], msg_status
+        )
+
+    if email_object:
+        email_object.sendmail(
+            email_config["receiver"],
+            title,
+            msg_status,
+            filename1,
+            filename2
+                )
+
+    if telegram_object:
+        telegram_object.send_message(msg_status)
+
+    out = {}
+    out['status'] = msg_status
+    out['serialnumber'] = MyUtils.get_serialnumber()
+    json_data = json.dumps(out)
+
+    if aws_object:
+        if aws_object.isconnected():
+            aws_object.publish_message(json_data)
+
+    if mqtt_object:
+        if mqtt_object.isconnected():
+            mqtt_object.publish_message(json_data)
+
+
 def main():
     """Main program"""
     print("Alarm app")
@@ -451,10 +521,12 @@ def main():
     global hasserial
     global hashf
     global hasaws
+    global hasmqtt
     global hastemp
     global hassiren
     global haspir
     global hasbuzzer
+    global hasheartbeat
 
     global modem_object
     global loop_object
@@ -466,6 +538,7 @@ def main():
     global serial_object
     global ups_object
     global aws_object
+    global mqtt_object
     global siren_object
     global pir_object
     global buzzer_object
@@ -480,9 +553,11 @@ def main():
     global serial_config 
     global hf_config
     global aws_config
+    global mqtt_config
     global siren_config
     global pir_config
     global buzzer_config
+    global heartbeat_config
     global zone1_config
     global zone2_config
 
@@ -510,6 +585,7 @@ def main():
     global exthumidity
 
     global startalarmdelay
+    global heartbeattime
 
     global last
 
@@ -548,6 +624,8 @@ def main():
             haswebserver = 1
         if global_config["hf"] == "yes":
             hashf = 1
+        if global_config["mqtt"] == "yes":
+            hasmqtt = 1
         if global_config["aws"] == "yes":
             hasaws = 1
         if global_config["temp"] == "yes":
@@ -558,6 +636,8 @@ def main():
             haspir = 1
         if global_config["buzzer"] == "yes":
             hasbuzzer = 1
+        if global_config["heartbeat"] == "yes":
+            hasheartbeat = 1
         if global_config["default_state"] == "True":
             alarm_on = True
             alarm_zone = int (global_config["default_zone"])
@@ -650,6 +730,13 @@ def main():
         for key in aws_config:
             print(key + ":" + aws_config[key])
 
+    if "MQTT" in config:
+        mqtt_config = config["MQTT"]
+        print(mqtt_config)
+        for key in mqtt_config:
+            print(key + ":" + mqtt_config[key])
+
+
     if "SIREN" in config:
         siren_config = config["SIREN"]
         print(siren_config)
@@ -674,6 +761,13 @@ def main():
         for key in buzzer_config:
             print(key + ":" + buzzer_config[key])
 
+    if "HEARTBEAT" in config:
+        heartbeat_config = config["HEARTBEAT"]
+        print(heartbeat_config)
+        for key in heartbeat_config:
+            print(key + ":" + heartbeat_config[key])
+
+
     if "ZONE1" in config:
         zone1_config = config["ZONE1"]
         print(zone1_config)
@@ -688,6 +782,7 @@ def main():
 
     if hasmodem:
         modem_object = MyModem()
+        modemid = modem_object.getmodem()
 
     if hasloop:
         loop_object = MyLoop(
@@ -736,6 +831,10 @@ def main():
     if hasaws:
         aws_object = MyAws( aws_config["endpoint"] , aws_config["ca_cert"], aws_config["certfile"] , aws_config["keyfile"] , aws_config["topicpub"],aws_config["topicsub"],  command_callback_aws)
 
+    if hasmqtt:
+        mqtt_object = MyMqtt( mqtt_config["endpoint"] ,mqtt_config["port"], mqtt_config["user"], mqtt_config["password"] , mqtt_config["topicpub"],mqtt_config["topicsub"],  command_callback_mqtt)
+
+
     if hassiren:
         siren_object = MySiren(siren_config["defaultmode"] ,siren_config["gpio"] , siren_config["timeout"] )
 
@@ -748,39 +847,63 @@ def main():
     if hasbuzzer:
         buzzer_object = MyBuzzer (buzzer_config["gpio"])
     
-    if aws_object:
-        for _ in range(30):
-            if aws_object.isconnected():
-                aws_object.publish_message('{"status":"Alarm restart"}')
-                break
-            else :
-                time.sleep (0.1)
-
-    if serial_object:
-        serial_object.write ("Serial open \r\n")
-
-    if modem_object:
-        modemid = modem_object.getmodem()
-        print("modemid " + str(modemid))
-        if hassms:
-            modem_object.createsms(modemid, sms_config["receiver"], "Alarm restart")
-            count = modem_object.getcountsms(str(modemid))
-            print(count)
-
-    if email_object:
-        email_object.sendmail(
-            email_config["receiver"], "Alarm restart", "Alarm restarted"
-        )
-
-    if telegram_object:
-        print("Telegram bot activate")
-
+    msg_status = 'Alarm restart'
+    if alarm_on:
+        msg_status += ' on'
+    else:
+        msg_status += ' off'
+    if alarm_zone == 1:
+        msg_status += 'zone 1'
+    else:
+        msg_status += 'zone 2'
+    send_status ('Alarm restart' , msg_status, None,None)
 
     startalarmdelay = 0
     if loop_object:
         loop_object.enablesetvalue(alarm_on)
     while True:
         print ('Alarm status : ' + str (alarm_on))
+
+        if hasheartbeat:
+            currenttime = int(time.time())
+            if ( currenttime > (heartbeattime + int(heartbeat_config['delay']))):
+
+                heartbeattime = currenttime
+                out = {}
+                heartbeatdata = {}
+                gsmdata = {}
+                if int(modemid) >= 0:
+                    output1, success1 = MyUtils.system_call("mmcli --modem=" + modemid + " --location-get -J")
+                    output2, success2 = MyUtils.system_call("mmcli --modem=" + modemid + " -J")
+                if success1 and  success2:
+                    data1 = json.loads(output1)
+                    data2 = json.loads(output2)
+                    gsmdata['cell']=data1["modem"]["location"]["3gpp"]
+                    gsmdata['signal']=data2["modem"]["generic"]["signal-quality"]["value"]
+                    gsmdata['access']=data2["modem"]["generic"]["access-technologies"]
+                    gsmdata['state']=data2["modem"]["generic"]["state"]
+                    out['gsm'] = gsmdata
+
+
+                heartbeatdata['time'] = str(currenttime)
+                if alarm_on:
+                    heartbeatdata['alarm'] = 'on'
+                else:
+                    heartbeatdata['alarm'] = 'off'
+                heartbeatdata['zone'] = str(alarm_zone)
+                out['heartbeat'] = heartbeatdata
+                out['serialnumber'] = MyUtils.get_serialnumber()
+                json_data = json.dumps(out)
+
+                if aws_object:
+                    if aws_object.isconnected():
+                        aws_object.publish_message(json_data)
+
+                if mqtt_object:
+                    if mqtt_object.isconnected():
+                        mqtt_object.publish_message(json_data)
+
+
         if ups_object:
             upsvoltage = ups_object.readVoltage()
             upscapacity = ups_object.readCapacity()
@@ -809,7 +932,7 @@ def main():
                     print(content)
         if lastalarmstate != alarm_on:
             if alarm_on:
-                msg_status = "Alarm on"
+                msg_status = "Alarm on zone " + str (alarm_zone)
                 last['STATUS'] = {'alarm': 'True' , 
                                   'zone' : str(alarm_zone)}
                 with open('last.ini', 'w') as configfile:
@@ -828,79 +951,21 @@ def main():
             print ("change alarm status : " + msg_status)
             if loop_object:
                 loop_object.enablesetvalue(alarm_on)
-            if modem_object:
-                modem_object.createsms(
-                    modemid, sms_config["receiver"], msg_status
-                )
+
  
-            if email_object:
-                        email_object.sendmail(
-                            email_config["receiver"],
-                            "Alarm change",
-                            msg_status,
-                            None,
-                            None
-                        )
- 
-            if telegram_object:
-                telegram_object.send_message(msg_status)
             lastalarmstate = alarm_on
-
-            if aws_object:
-                if aws_object.isconnected():
-                    aws_object.publish_message('{"status":"' + msg_status + '"}')
-
+            send_status ("alarm change", msg_status,None, None)
 
 
         if (alimseriallow == False) and (alimserialvalid == True) and (alimserialvalue  < 1 ):
             alimseriallow = True
             msg_status = "Alarm tension basse : " + str (alimserialvalue) + "V"
-
-            if modem_object:
-                modem_object.createsms(
-                    modemid, sms_config["receiver"], msg_status
-                )
-
-            if email_object:
-                        email_object.sendmail(
-                            email_config["receiver"],
-                            "Alarm change",
-                            msg_status,
-                            None,
-                            None
-                        )
-
-            if telegram_object:
-                telegram_object.send_message(msg_status)
-
-            if aws_object:
-                if aws_object.isconnected():
-                    aws_object.publish_message('{"status":"' + msg_status + '"}')
+            send_status ("alarm change", msg_status,None, None)
 
         if (alimseriallow == True) and (alimserialvalid == True) and (alimserialvalue  > 1 ):
             alimseriallow = False
             msg_status = "Alarm retour tension  : " + str (alimserialvalue) + "V"
-
-            if modem_object:
-                modem_object.createsms(
-                    modemid, sms_config["receiver"], msg_status
-                )
-
-            if email_object:
-                        email_object.sendmail(
-                            email_config["receiver"],
-                            "Alarm change",
-                            msg_status,
-                            None,
-                            None
-                        )
-
-            if telegram_object:
-                telegram_object.send_message(msg_status)
-
-            if aws_object:
-                if aws_object.isconnected():
-                    aws_object.publish_message('{"status":"' + msg_status + '"}')
+            send_status ("alarm change", msg_status,None, None)
 
         if temp_object:
             value = temp_object.readTemperature()
@@ -924,26 +989,7 @@ def main():
                 filename2 = ipcamera_object.capture_photo()
             msg_status = 'Ring'
 
-            if modem_object:
-                modem_object.createsms(
-                    modemid, sms_config["receiver"], msg_status
-                )
-
-            if email_object:
-                email_object.sendmail(
-                    email_config["receiver"],
-                    "Ring",
-                    msg_status,
-                    filename,
-                    filename2
-                )
-
-            if telegram_object:
-                telegram_object.send_message(msg_status)
-
-            if aws_object:
-                if aws_object.isconnected():
-                    aws_object.publish_message('{"status":"' + msg_status + '"}')
+            send_status ("Ring", msg_status,filename, filename2)
 
             if filename is not None:
                 os.remove(filename)
@@ -994,26 +1040,7 @@ def main():
                 if msg_status == '':
                     msg_status = "Unknown"
 
-                if modem_object:
-                    modem_object.createsms(
-                        modemid, sms_config["receiver"], msg_status
-                    )
-
-                if email_object:
-                    email_object.sendmail(
-                        email_config["receiver"],
-                        "Alarm change",
-                        msg_status,
-                        filename,
-                        filename2
-                    )
-
-                if telegram_object:
-                    telegram_object.send_message(msg_status)
-
-                if aws_object:
-                    if aws_object.isconnected():
-                        aws_object.publish_message('{"status":"' + msg_status + '"}')
+                send_status ("Alarm detected", msg_status,filename, filename2)
 
                 if filename is not None:
                     os.remove(filename)
@@ -1055,26 +1082,7 @@ def main():
                     if ipcamera_object:
                         filename2 = ipcamera_object.capture_photo()
 
-                    if modem_object:
-                        modem_object.createsms(
-                            modemid, sms_config["receiver"],msg_status
-                        )
-
-                    if email_object:
-                        email_object.sendmail(
-                            email_config["receiver"],
-                            "Alarm Detected",
-                            msg_status,
-                            filename,
-                            filename2,
-                        )
-
-                    if telegram_object:
-                        telegram_object.send_message(msg_status)
-
-                    if aws_object:
-                        if aws_object.isconnected():
-                            aws_object.publish_message('{"status":"' + msg_status + '"}')
+                    send_status ("Alarm detected", msg_status,filename, filename2)
 
                     if filename is not None:
                         os.remove(filename)
