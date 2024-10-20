@@ -73,7 +73,10 @@ class MyModem:
         """Count sms present on LTE dongle"""
         if int(self.modemid) >= 0:
             result = self.getpathsms(modemid)
-            count = len(result)
+            if result: 
+                count = len(result)
+            else:
+                count = 0 
             return count
 
     def readsms(self, modemid, smspath):
