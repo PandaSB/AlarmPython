@@ -19,7 +19,7 @@ buzzer = yes
 default_state = Last
 default_zone  = 1
 delayalarm = 10
-hearbeat = no
+heartbeat = no
 
 
 [EMAIL]
