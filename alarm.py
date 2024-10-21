@@ -542,6 +542,7 @@ def main():
     global siren_object
     global pir_object
     global buzzer_object
+    global temp_object
 
     global email_config
     global loop_config
@@ -560,6 +561,7 @@ def main():
     global heartbeat_config
     global zone1_config
     global zone2_config
+    global temp_config
 
     global lastloopstatus
     global lastalarmstate
