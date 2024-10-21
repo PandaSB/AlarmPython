@@ -1,0 +1,9 @@
+[GLOBAL]
+
+broker = www.example.com
+port = 8080
+keepaliveinterval = 45
+topic = alarm/pub
+username = user
+password = passwd
+dbname = alarm.db

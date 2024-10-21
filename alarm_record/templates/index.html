@@ -1,0 +1,56 @@
+<!-- SPDX-FileCopyrightText: 2024 BARTHELEMY Stephane  stephane@sbarthelemy.com -->
+<!-- SPDX-License-Identifier: ISC -->
+
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Users List</title>
+    <meta charset="utf-8">
+    <link rel="stylesheet" href="static/styles.css"/>
+  </head>
+  <body>
+       <form action="/">
+        <label for="sn"> Serial Number:</label>
+        <select id="sn" name="sn" value="{{ lastsn }}" defaultValue="{{ lastsn }}" >
+        <option value="all">all</option>    
+        {% for index in snlist %}
+          <option {% if index[0] == lastsn %} selected {% else %} {% endif %} value="{{ index[0] }}">{{ index[0] }}</option>
+        {% endfor %}
+        </select>
+        <input type="submit">
+      </form>
+    <div>Signal</div>
+    <img src="static/signal.png?{{ time }}" alt="chart" height="400" width="1000">
+    <table id="demo">
+        <tr>
+            <td>Index</td>
+            <td>SerialNumber</td>
+            <td>Time</td>
+            <td>Cid</td>
+            <td>Lac</td>
+            <td>Mcc</td>
+            <td>Mnc</td>
+            <td>Tac</td>
+            <td>Signal</td>
+            <td>Acess</td>
+            <td>State</td>
+
+        </tr>
+      {% for u in data %}
+      <tr>
+        <td>{{ u[0] }}</td>
+        <td>{{ u[1] }}</td>
+        <td>{{ u[2] }}</td>
+        <td>{{ u[3] }}</td>
+        <td>{{ u[4] }}</td>
+        <td>{{ u[5] }}</td>
+        <td>{{ u[6] }}</td>
+        <td>{{ u[7] }}</td>
+        <td>{{ u[8] }}</td>
+        <td>{{ u[9] }}</td>
+        <td>{{ u[10] }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+  </body>
+</html>
