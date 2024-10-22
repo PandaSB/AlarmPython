@@ -130,3 +130,10 @@ loop3 = no
 loop4 = no
 pir   = no
 intrusion = no
+
+[LEVEL]
+restart = all
+change  = sms email telegram aws mqtt
+power   = sms telegram aws mqtt
+ring    = sms telegram aws mqtt
+alarm   = all 

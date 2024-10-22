@@ -392,11 +392,32 @@ def command_received (cmd, modem = False , source = None  ):
         reply = 'Set siren off'
     if (check_cmd == 'siren status'):
         reply = 'Siren status = ' + siren_object.ison()
-    if (check_cmd) == 'cell info':
+    if (check_cmd == 'cell info'):
         text = ''
         if modem_object:
             text = modem_object.getlocation(str(modemid))
         reply = 'location : ' + text
+    if len (check_cmd) > 6:
+        if check_cmd[:6] == 'shell ':
+            reply, success = MyUtils.system_call(cmd[6:])
+            if not success:
+                reply= 'Error systemcall'
+    if (check_cmd == 'help'):
+            reply  = 'alarm on\r\n'
+            reply += 'alarm home\r\n'
+            reply += 'alarm off\r\n'
+            reply += 'alarm off\r\n'
+            reply += 'alarm status\r\n'
+            reply += 'cpu\r\n'
+            reply += 'ups\r\n'
+            reply += 'siren on\r\n'
+            reply += 'siren off\r\n'
+            reply += 'siren force off\r\n'
+            reply += 'siren status\r\n'
+            reply += 'cell info\r\n'
+            reply += 'shell ***cmd***\r\n' 
+
+
     if alarm_on:
         last['STATUS']['alarm'] = 'True'
     else:
@@ -420,11 +441,12 @@ def command_callback_mqtt (cmd):
     """Command receive by aws"""
     msg = None
     print ('string  aws: ' + cmd)
-    msg = command_received (cmd,source='aws')
+    msg = command_received (cmd,source='mqtt')
     if msg:
         print ("answer aws mqtt : " + msg)
         out = {}
         out['answer'] = msg
+        out['cmd_called'] = cmd
         out['serialnumber'] = MyUtils.get_serialnumber()
         json_data = json.dumps(out)
         return json_data
@@ -460,7 +482,7 @@ def callback_pir (value):
             pir = True
 
 
-def send_status (title , msg_status, filename1,filename2):
+def send_status (title , msg_status, filename1,filename2,level):
     """Send status to Email / Telegram / Mqtt  / Aws / SMS  """
     global email_object
     global email_config
@@ -475,21 +497,24 @@ def send_status (title , msg_status, filename1,filename2):
     global mqtt_object
 
     if modem_object:
-        modem_object.createsms(
-            modemid, sms_config["receiver"], msg_status
-        )
+        if ('sms' in level) or ('all' in level):
+            modem_object.createsms(
+                modemid, sms_config["receiver"], msg_status
+            )
 
     if email_object:
-        email_object.sendmail(
-            email_config["receiver"],
-            title,
-            msg_status,
-            filename1,
-            filename2
-                )
+        if ('email' in level) or ('all' in level):
+            email_object.sendmail(
+                email_config["receiver"],
+                title,
+                msg_status,
+                filename1,
+                filename2
+                    )
 
     if telegram_object:
-        telegram_object.send_message(msg_status)
+        if ('telegram' in level) or ('all' in level):
+            telegram_object.send_message(msg_status)
 
     out = {}
     out['status'] = msg_status
@@ -497,12 +522,14 @@ def send_status (title , msg_status, filename1,filename2):
     json_data = json.dumps(out)
 
     if aws_object:
-        if aws_object.isconnected():
-            aws_object.publish_message(json_data)
+        if ('aws' in level) or ('all' in level):
+            if aws_object.isconnected():
+                aws_object.publish_message(json_data)
 
     if mqtt_object:
-        if mqtt_object.isconnected():
-            mqtt_object.publish_message(json_data)
+        if ('mqtt' in level) or ('all' in level):
+            if mqtt_object.isconnected():
+                mqtt_object.publish_message(json_data)
 
 
 def main():
@@ -782,6 +809,13 @@ def main():
         for key in zone2_config:
             print(key + ":" + zone2_config[key])
 
+    if "LEVEL" in config:
+        level_config = config["LEVEL"]
+        print(level_config)
+        for key in level_config:
+            print(key + ":" + level_config[key])
+
+
     if hasmodem:
         modem_object = MyModem()
         modemid = modem_object.getmodem()
@@ -858,7 +892,7 @@ def main():
         msg_status += 'zone 1'
     else:
         msg_status += 'zone 2'
-    send_status ('Alarm restart' , msg_status, None,None)
+    send_status ('Alarm restart' , msg_status, None,None,level_config["restart"])
 
     startalarmdelay = 0
     if loop_object:
@@ -956,18 +990,18 @@ def main():
 
  
             lastalarmstate = alarm_on
-            send_status ("alarm change", msg_status,None, None)
+            send_status ("alarm change", msg_status,None, None,level_config["change"])
 
 
         if (alimseriallow == False) and (alimserialvalid == True) and (alimserialvalue  < 1 ):
             alimseriallow = True
             msg_status = "Alarm tension basse : " + str (alimserialvalue) + "V"
-            send_status ("alarm change", msg_status,None, None)
+            send_status ("alarm change", msg_status,None, None,level_config["power"])
 
         if (alimseriallow == True) and (alimserialvalid == True) and (alimserialvalue  > 1 ):
             alimseriallow = False
             msg_status = "Alarm retour tension  : " + str (alimserialvalue) + "V"
-            send_status ("alarm change", msg_status,None, None)
+            send_status ("alarm change", msg_status,None, None,level_config["power"])
 
         if temp_object:
             value = temp_object.readTemperature()
@@ -991,7 +1025,7 @@ def main():
                 filename2 = ipcamera_object.capture_photo()
             msg_status = 'Ring'
 
-            send_status ("Ring", msg_status,filename, filename2)
+            send_status ("Ring", msg_status,filename, filename2,level_config["ring"])
 
             if filename is not None:
                 os.remove(filename)
@@ -1042,7 +1076,7 @@ def main():
                 if msg_status == '':
                     msg_status = "Unknown"
 
-                send_status ("Alarm detected", msg_status,filename, filename2)
+                send_status ("Alarm detected", msg_status,filename, filename2,level_config["alarm"])
 
                 if filename is not None:
                     os.remove(filename)
@@ -1084,7 +1118,7 @@ def main():
                     if ipcamera_object:
                         filename2 = ipcamera_object.capture_photo()
 
-                    send_status ("Alarm detected", msg_status,filename, filename2)
+                    send_status ("Alarm detected", msg_status,filename, filename2,level_config["alarm"])
 
                     if filename is not None:
                         os.remove(filename)
