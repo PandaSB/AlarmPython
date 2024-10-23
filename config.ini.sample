@@ -114,6 +114,9 @@ gpio = GPIO12
 [HEARTBEAT]
 delay = 120
 
+[UPS]
+type = SERIAL
+
 [ZONE1]
 loop1 = yes
 loop2 = yes

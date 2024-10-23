@@ -112,6 +112,8 @@ alimserialvalid     = False
 alimseriallow       = False
 batserialvalue      = 0.0
 batserialvalid      = False
+curserialvalue      = 0.0
+curserialvalid      = False
 batseriallow        = False
 
 exttemp             = 0.0
@@ -280,6 +282,8 @@ def command_serial ( buffer):
     global alimserialvalid
     global batserialvalue
     global batserialvalid
+    global curserialvalue
+    global curserialvalid
     global lastintrutiontime
     global lastserialtime
     global lastserialcmd
@@ -322,6 +326,10 @@ def command_serial ( buffer):
                 print ("Tension Batterie : " + check_cmd[1])
                 batserialvalue = float (check_cmd[1])
                 batserialvalid = True
+            elif (check_cmd[0] == 'cur'):
+                print ("Tension Batterie : " + check_cmd[1])
+                curserialvalue = float (check_cmd[1])
+                curserialvalid = True
             elif (check_cmd[0] == 'arret'):
                 print ("Arret raspberry PI : ")
                 subprocess.Popen(['sudo','shutdown','-h','now'])
@@ -796,6 +804,12 @@ def main():
         for key in heartbeat_config:
             print(key + ":" + heartbeat_config[key])
 
+    if "UPS" in config:
+        ups_config = config["UPS"]
+        print(ups_config)
+        for key in ups_config:
+            print(key + ":" + ups_config[key])
+
 
     if "ZONE1" in config:
         zone1_config = config["ZONE1"]
@@ -843,7 +857,8 @@ def main():
         )
 
     if hasups:
-        ups_object = MyUps('INA219')
+        if not ( ups_config["type"] ==  "SERIAL"):
+            ups_object = MyUps(ups_config["type"])
 
     if hastelegram:
         telegram_object = MyTelegram(telegram_config["chat_id"],  telegram_config["token"],command_callback_telegram)
@@ -939,17 +954,29 @@ def main():
                     if mqtt_object.isconnected():
                         mqtt_object.publish_message(json_data)
 
+        if (ups_config["type"] == 'SERIAL'):
+                if batserialvalid:
+                    upsvoltage = batserialvalue
+                    print ('Voltage      : ' + f'{upsvoltage:2.2f}' + ' V' )
+                if curserialvalid:
+                    upscurrent = curserialvalue
+                    upscapacity = (upscurrent - 6)/2.4*100
+                    if(capacity > 100):capacity = 100
+                    if(capacity < 0):capacity = 0
+                    print ('Current      : ' + f'{upscurrent:2.2f}' + ' mA' )
+                    print ('Capacity     : ' + f'{upscapacity:2.2f}' + ' %' )
 
-        if ups_object:
-            upsvoltage = ups_object.readVoltage()
-            upscapacity = ups_object.readCapacity()
-            upscurrent = ups_object.readCurrent()
-            pwlinegetvalue = ups_object.pwlinegetvalue()
+        else:
+            if ups_object:
+                upsvoltage = ups_object.readVoltage()
+                upscapacity = ups_object.readCapacity()
+                upscurrent = ups_object.readCurrent()
+                pwlinegetvalue = ups_object.pwlinegetvalue()
 
-            print ('pw connected : ' + str (pwlinegetvalue))
-            print ('Voltage      : ' + f'{upsvoltage:2.2f}' + ' V' )
-            print ('Current      : ' + f'{upscurrent:2.2f}' + ' mA' ) 
-            print ('Capacity     : ' + f'{upscapacity:2.2f}' + ' %' )
+                print ('pw connected : ' + str (pwlinegetvalue))
+                print ('Voltage      : ' + f'{upsvoltage:2.2f}' + ' V' )
+                print ('Current      : ' + f'{upscurrent:2.2f}' + ' mA' )
+                print ('Capacity     : ' + f'{upscapacity:2.2f}' + ' %' )
 
         if modem_object:
             count = modem_object.getcountsms(str(modemid))
