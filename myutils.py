@@ -40,3 +40,17 @@ class MyUtils:
             output = e.output.decode()
             success = False
         return output, success
+
+    def  isReachable(hostname, port = 80, timeout=2):
+        s = None
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+            s.settimeout(timeout)
+            s.connect((hostname, int(port)))
+            s.shutdown(socket.SHUT_RDWR)
+            s.close()
+            return True
+        except:
+            if s:
+                s.close()
+            return False
