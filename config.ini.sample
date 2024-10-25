@@ -16,10 +16,10 @@ temp = yes
 siren = yes
 pir = yes
 buzzer = yes
+heartbeat = no
 default_state = Last
 default_zone  = 1
 delayalarm = 10
-heartbeat = no
 
 
 [EMAIL]
@@ -133,6 +133,7 @@ loop3 = no
 loop4 = no
 pir   = no
 intrusion = no
+security = yes
 
 [LEVEL]
 restart = all
