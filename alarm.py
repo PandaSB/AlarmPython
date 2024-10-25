@@ -944,6 +944,10 @@ def main():
                 heartbeatdata['zone'] = str(alarm_zone)
                 out['heartbeat'] = heartbeatdata
                 out['serialnumber'] = MyUtils.get_serialnumber()
+                if  MyUtils.isReachable ("www.google.fr"):
+                    out['internet_access'] = 'ok'
+                else:
+                    out['internet_access'] = 'ko'
                 json_data = json.dumps(out)
 
                 if aws_object:

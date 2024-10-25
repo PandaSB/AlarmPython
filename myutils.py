@@ -2,6 +2,7 @@
 # SPDX-License-Identifier: ISC
 import shlex
 from subprocess import STDOUT, CalledProcessError, check_output
+import socket
 
 class MyUtils:
     """Utilitaires"""
