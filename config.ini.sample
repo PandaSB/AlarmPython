@@ -116,6 +116,7 @@ delay = 120
 
 [UPS]
 type = SERIAL
+limitsms = 10
 
 [ZONE1]
 loop1 = yes
