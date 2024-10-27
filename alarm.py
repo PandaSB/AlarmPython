@@ -327,7 +327,7 @@ def command_serial ( buffer):
                 batserialvalue = float (check_cmd[1])
                 batserialvalid = True
             elif (check_cmd[0] == 'cur'):
-                print ("Tension Batterie : " + check_cmd[1])
+                print ("Courent Batterie : " + check_cmd[1])
                 curserialvalue = float (check_cmd[1])
                 curserialvalid = True
             elif (check_cmd[0] == 'arret'):
