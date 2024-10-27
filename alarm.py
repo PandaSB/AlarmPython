@@ -965,8 +965,8 @@ def main():
                 if curserialvalid:
                     upscurrent = curserialvalue
                     upscapacity = (upscurrent - 6)/2.4*100
-                    if(capacity > 100):capacity = 100
-                    if(capacity < 0):capacity = 0
+                    if(upscapacity > 100):upscapacity = 100
+                    if(upscapacity < 0):upscapacity = 0
                     print ('Current      : ' + f'{upscurrent:2.2f}' + ' mA' )
                     print ('Capacity     : ' + f'{upscapacity:2.2f}' + ' %' )
 
