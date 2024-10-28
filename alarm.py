@@ -961,14 +961,15 @@ def main():
         if (ups_config["type"] == 'SERIAL'):
                 if batserialvalid:
                     upsvoltage = batserialvalue
-                    print ('Voltage      : ' + f'{upsvoltage:2.2f}' + ' V' )
-                if curserialvalid:
-                    upscurrent = curserialvalue
-                    upscapacity = (upscurrent - 6)/2.4*100
+                    upscapacity = (upsvoltage - (3* float(ups_config["nbelem"])))/(1.2 * float(ups_config["nbelem"]))*100
                     if(upscapacity > 100):upscapacity = 100
                     if(upscapacity < 0):upscapacity = 0
-                    print ('Current      : ' + f'{upscurrent:2.2f}' + ' mA' )
+                    print ('Voltage      : ' + f'{upsvoltage:2.2f}' + ' V' )
                     print ('Capacity     : ' + f'{upscapacity:2.2f}' + ' %' )
+
+                if curserialvalid:
+                    upscurrent = curserialvalue
+                    print ('Current      : ' + f'{upscurrent:2.2f}' + ' mA' )
 
         else:
             if ups_object:
