@@ -106,7 +106,7 @@ gpio = GPIO27
 
 [TEMP]
 type = AM2320
-addresse = 0x5C
+address = 0x5C
 
 [BUZZER]
 gpio = GPIO12
