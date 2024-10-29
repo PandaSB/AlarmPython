@@ -1030,7 +1030,7 @@ def main():
             msg_status = "Alarm tension basse : " + str (alimserialvalue) + "V"
             send_status ("alarm change", msg_status,None, None,level_config["power"])
 
-        if (alimseriallow == True) and (alimserialvalid == True) and (alimserialvalue  > (ups_config["limitsms"]) ):
+        if (alimseriallow == True) and (alimserialvalid == True) and (alimserialvalue  > (float(ups_config["limitsms"])) ):
             alimseriallow = False
             msg_status = "Alarm retour tension  : " + str (alimserialvalue) + "V"
             send_status ("alarm change", msg_status,None, None,level_config["power"])
