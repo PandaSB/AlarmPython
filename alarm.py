@@ -335,13 +335,19 @@ def command_serial ( buffer):
                 subprocess.Popen(['sudo','shutdown','-h','now'])
             else:
                 print ('Command inconnu : ' + buffer)
+    old_laststatus = last['STATUS']['alarm']
+    old_lastzone = last['STATUS']['zone']
     if alarm_on:
         last['STATUS']['alarm'] = 'True'
     else:
         last['STATUS']['alarm'] = 'False'
     last['STATUS']['zone'] = str(alarm_zone)
-    with open('last.ini', 'w') as configfile:
-        last.write(configfile)      
+    if (old_laststatus != last['STATUS']['alarm']) or (old_lastzone != last['STATUS']['zone']):
+        try:
+            with open('last.ini', 'w') as configfile:
+                last.write(configfile)
+        except:
+            print ("error write last configuration")
 
 
 
@@ -1003,16 +1009,22 @@ def main():
                 msg_status = "Alarm on zone " + str (alarm_zone)
                 last['STATUS'] = {'alarm': 'True' , 
                                   'zone' : str(alarm_zone)}
-                with open('last.ini', 'w') as configfile:
-                    last.write(configfile)        
+                try:
+                    with open('last.ini', 'w') as configfile:
+                        last.write(configfile)
+                except:
+                    print ("Error Write last configuration file")
                 if buzzer_object:
                     buzzer_object.setbuzzer (number = 1 , pulse = 1.0 , delay = 0.0)
             else:
                 msg_status = "Alarm off"
                 last['STATUS'] = {'alarm': 'False' , 
                                   'zone' : str(alarm_zone)}
-                with open('last.ini', 'w') as configfile:
-                    last.write(configfile)     
+                try:
+                    with open('last.ini', 'w') as configfile:
+                        last.write(configfile)
+                except:
+                    print ("Error Write last configuration file")
                 if buzzer_object:
                     buzzer_object.setbuzzer (number = 2 , pulse = 0.25 , delay = 0.25)
 
