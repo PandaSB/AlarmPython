@@ -38,7 +38,7 @@ class MyDisplay:
         return self.height
 
     def get_width(self):
-        return self.height
+        return self.width
 
 
     def addimage(self , x,y,w,h,image_path):
