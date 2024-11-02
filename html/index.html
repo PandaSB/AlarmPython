@@ -18,7 +18,7 @@
     Tension <span id = tens1> %% </span>  Volts<br>  
     Intensite <span id = cur1> %% </span>  mA<br>  
     Capacity :  <span id = cap1> %%</span> %<br>  
-    Temperature :  <span id = temp2> %%</span> &deg;C Humidite :  <span id = hum2> %%</span> %RH<br>  
+    Temperature :  <span id = temp2> %%</span> &deg;C Humidite :  <span id = hum2> %%</span> %RH  Pression :  <span id = pres2> %%</span> %RH<br>  
   </div>
   <div>
     <img src="tools-table.jpg" alt="Image from Camera 1" height="480" width="640" id = "img1" >
@@ -89,6 +89,8 @@
         alarm_capacity = httpGet ('control/get_alarm_capacity')  
         alarm_temperature = httpGet ('control/get_temperature')  
         alarm_humidity = httpGet ('control/get_humidity')  
+        alarm_pressure = httpGet ('control/get_pressure')  
+
         if (alarm_status == "False")
         {
           document.getElementById('bt1').innerText = "Activer l'alarme";
@@ -104,8 +106,9 @@
         document.getElementById('cur1').innerText = alarm_current;
         document.getElementById('cap1').innerText = alarm_capacity;
         document.getElementById('temp2').innerText = alarm_temperature;
-        document.getElementById('hum2').innerText = alarm_humidity;
-        
+        document.getElementById('hum2').innerText = alarm_humidity;       
+        document.getElementById('pres2').innerText = alarm_pressure;
+
         document.getElementById('img1').src = 'control/img1.jpg?' + new Date().getTime();
         document.getElementById('img2').src = 'control/img2.jpg?' + new Date().getTime();
         

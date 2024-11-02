@@ -118,6 +118,7 @@ batseriallow        = False
 
 exttemp             = 0.0
 exthumidity         = 0.0      
+extpressure         = 0.0
 
 last                = None 
 
@@ -135,6 +136,7 @@ class MyServer(BaseHTTPRequestHandler):
         global ipcamera_object
         global exttemp
         global exthumidity
+        global extpressure
         file_name, file_extension = os.path.splitext(self.path.lower())
         print ('filename' + file_name)
         print ('extension' + file_extension)
@@ -182,6 +184,11 @@ class MyServer(BaseHTTPRequestHandler):
                 self.send_header("Content-type", "text/plain")
                 self.end_headers()
                 self.wfile.write(bytes(f'{exthumidity:2.2f}' , "utf-8"))
+            elif (command == '/get_pressure'):
+                self.send_response(200)
+                self.send_header("Content-type", "text/plain")
+                self.end_headers()
+                self.wfile.write(bytes(f'{extpressure:4.2f}' , "utf-8"))
             elif (command == '/get_alarm_temp'):
                 self.send_response(200)
                 self.send_header("Content-type", "text/plain")
@@ -192,7 +199,13 @@ class MyServer(BaseHTTPRequestHandler):
                 self.send_header("Content-type", "text/plain")
                 self.end_headers()
                 if hasups: 
-                    self.wfile.write(bytes(f'{ups_object.readVoltage():2.2f}', "utf-8"))
+                    if ups_object:
+                        self.wfile.write(bytes(f'{ups_object.readVoltage():2.2f}', "utf-8"))
+                    else:
+                        if batserialvalid:
+                            self.wfile.write(bytes(f'{upsvoltage:2.2f}', "utf-8"))
+                        else:
+                            self.wfile.write(bytes(str('--')))
                 else:
                     self.wfile.write(bytes(str('--')))
             elif (command == '/get_alarm_current'):
@@ -200,7 +213,13 @@ class MyServer(BaseHTTPRequestHandler):
                 self.send_header("Content-type", "text/plain")
                 self.end_headers()
                 if hasups: 
-                    self.wfile.write(bytes(f'{ups_object.readCurrent():2.2f}', "utf-8"))
+                    if ups_object:
+                        self.wfile.write(bytes(f'{ups_object.readCurrent():2.2f}', "utf-8"))
+                    else:
+                        if curserialvalid:
+                            self.wfile.write(bytes(f'{curserialvalue:2.2f}', "utf-8"))
+                        else:
+                            self.wfile.write(bytes(str('--')))
                 else:
                     self.wfile.write(bytes(str('--')))
             elif (command == '/get_alarm_capacity'):    
@@ -208,7 +227,13 @@ class MyServer(BaseHTTPRequestHandler):
                 self.send_header("Content-type", "text/plain")
                 self.end_headers()
                 if hasups: 
-                    self.wfile.write(bytes(f'{ups_object.readCapacity():2.2f}', "utf-8"))
+                    if ups_object:
+                        self.wfile.write(bytes(f'{ups_object.readCapacity():2.2f}', "utf-8"))
+                    else:
+                        if batserialvalid:
+                            self.wfile.write(bytes(f'{upscapacity:2.2f}', "utf-8"))
+                        else:
+                            self.wfile.write(bytes(str('--')))
                 else:
                     self.wfile.write(bytes(str('---')))
             elif (command == '/img1.jpg'):
@@ -363,6 +388,7 @@ def command_received (cmd, modem = False , source = None  ):
     global upscapacity
     global exttemp
     global exthumidity
+    global extpressure
 
     print ('command reveived : ', cmd)
     check_cmd = cmd.lower()
@@ -390,7 +416,7 @@ def command_received (cmd, modem = False , source = None  ):
     if (check_cmd == 'ups'):
         reply = 'UPS: ' + f'{upsvoltage:2.2f}' + 'V / '+ f'{upscurrent:3.2f}' + ' mA / ' + f'{upscapacity:3.2f}' + '%'
     if (check_cmd == 'temp'):
-        reply = 'TEMP: ' + f'{exttemp:2.2f}' + '°C / '+ f'{exthumidity:3.2f}' + ' %RH'
+        reply = 'TEMP: ' + f'{exttemp:2.2f}' + '°C / '+ f'{exthumidity:3.2f}' + ' %RH /' + f'{extpressure:3.2f}' + 'hPa'
     if (check_cmd == 'siren on'):
         siren_object.on()
         reply = 'Set siren on'
@@ -626,6 +652,7 @@ def main():
 
     global exttemp
     global exthumidity
+    global extpressure
 
     global startalarmdelay
     global heartbeattime
@@ -1056,6 +1083,11 @@ def main():
             if value:
                 exthumidity = value
                 print ('Humidity ext : ' + f'{exthumidity:2.2f}' + ' %' ) 
+            value = temp_object.readPressure()
+            if value:
+                extpressure = value
+                print ('Pressure ext : ' + f'{extpressure:4.2f}' + ' hPa' ) 
+
 
         if alarm_ring:
             filename = None
