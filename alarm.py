@@ -27,6 +27,7 @@ from mytemp import MyTemp
 from mysiren import MySiren
 from mypir import MyPir
 from mybuzzer import MyBuzzer
+from mydisplay import MyDisplay
 
 
 hasmodem            = 0
@@ -47,6 +48,7 @@ hassiren            = 0
 haspir              = 0
 hasbuzzer           = 0
 hasheartbeat        = 0
+hasdisplay          = 0
 
 modem_object        = None
 loop_object         = None
@@ -63,6 +65,7 @@ temp_object         = None
 siren_object        = None
 pir_object          = None
 buzzer_object       = None
+display_object      = None
 
 lastloopstatus      = False
 loopcheck           = False
@@ -98,6 +101,7 @@ buzzer_config       = None
 heartbeat_config    = None
 zone1_config        = None
 zone2_config        = None
+display_config      = None
 
 
 modemid             = None
@@ -594,6 +598,7 @@ def main():
     global haspir
     global hasbuzzer
     global hasheartbeat
+    global hasdisplay
 
     global modem_object
     global loop_object
@@ -610,6 +615,7 @@ def main():
     global pir_object
     global buzzer_object
     global temp_object
+    global display_object
 
     global email_config
     global loop_config
@@ -629,6 +635,7 @@ def main():
     global zone1_config
     global zone2_config
     global temp_config
+    global display_config
 
     global lastloopstatus
     global lastalarmstate
@@ -708,6 +715,8 @@ def main():
             hasbuzzer = 1
         if global_config["heartbeat"] == "yes":
             hasheartbeat = 1
+        if global_config["display"] == "yes":
+            hasdisplay = 1
         if global_config["default_state"] == "True":
             alarm_on = True
             alarm_zone = int (global_config["default_zone"])
@@ -862,6 +871,12 @@ def main():
         for key in level_config:
             print(key + ":" + level_config[key])
 
+    if "DISPLAY" in config:
+        display_config = config["DISPLAY"]
+        print(display_config)
+        for key in display_config:
+            print(key + ":" + display_config[key])
+
 
     if hasmodem:
         modem_object = MyModem()
@@ -930,7 +945,10 @@ def main():
 
     if hasbuzzer:
         buzzer_object = MyBuzzer (buzzer_config["gpio"])
-    
+
+    if hasdisplay:
+        display_object = MyDisplay (display_config["type"],display_config["address"],display_config["rotate"],display_config["width"],display_config["height"] )
+
     msg_status = 'Alarm restart'
     if alarm_on:
         msg_status += ' on'
@@ -945,8 +963,56 @@ def main():
     startalarmdelay = 0
     if loop_object:
         loop_object.enablesetvalue(alarm_on)
+
+
+    save_display_alarm_status = display_alarm_status = 0
+    save_display_signal_level = display_signal_level = 0
+    save_display_ups_status = display_ups_status = ''
+    force_display = True
+
     while True:
         print ('Alarm status : ' + str (alarm_on))
+
+        if display_object:
+            if not alarm_on: display_alarm_status = 0
+            elif alarm_zone == 1 : display_alarm_status = 1
+            else: display_alarm_status = 2
+            if modem_object:
+                display_signal_level = int(modem_object.getsignallevel(modemid))
+
+            if hasups and upsvoltage and upscurrent :
+                display_ups_status = 'Bat: ' + '{:2.2f}'.format (upsvoltage) + 'V (' + '{:3.2f}'.format(upscurrent) + 'mA)'
+
+            display_change = False
+            if force_display: display_change = True
+            if display_alarm_status != save_display_alarm_status: display_change= True
+            if display_signal_level != save_display_signal_level: display_change = True
+            if display_ups_status != save_display_ups_status: display_change = True
+
+            if display_change:
+                display_object.clear()
+
+                if (save_display_signal_level < 33 ) : display_object.addimage (display_object.get_width() - 24 , 0 , 20,20 , "icons/signal_cellular_alt_1_bar_24dp_5F6368_FILL0_wght400_GRAD0_opsz24.png" )
+                elif (save_display_signal_level < 66 ) : display_object.addimage (display_object.get_width() - 24 , 0 ,20,20, "icons/signal_cellular_alt_2_bar_24dp_5F6368_FILL0_wght400_GRAD0_opsz24.png" )
+                else: display_object.addimage (display_object.get_width() - 24, 0 ,20,20, "icons/signal_cellular_alt_24dp_5F6368_FILL0_wght400_GRAD0_opsz24.png" )
+
+                if alarm_on :
+                    if alarm_zone == 1:
+                        display_object.drawcentertext (display_object.get_width() /2,display_object.get_height() /2, "Alarm zone 1")
+                    else:
+                        display_object.drawcentertext (display_object.get_width() /2,display_object.get_height() /2, "Alarm zone 2")
+                else:
+                    display_object.drawcentertext (display_object.get_width() /2,display_object.get_height() /2, "Alarm off")
+
+
+                if hasups:
+                    display_object.drawcentertext (display_object.get_width() /2,display_object.get_height()-15, display_ups_status)
+
+            save_display_alarm_status = display_alarm_status
+            save_display_signal_level = display_signal_level
+            save_display_ups_status = display_ups_status
+
+            force_display = False
 
         if hasheartbeat:
             currenttime = int(time.time())

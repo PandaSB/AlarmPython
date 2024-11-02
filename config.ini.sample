@@ -17,6 +17,7 @@ siren = yes
 pir = yes
 buzzer = yes
 heartbeat = no
+display = no
 default_state = Last
 default_zone  = 1
 delayalarm = 10
@@ -143,4 +144,11 @@ restart = all
 change  = sms email telegram aws mqtt
 power   = sms telegram aws mqtt
 ring    = sms telegram aws mqtt
-alarm   = all 
+alarm   = all
+
+[DISPLAY]
+type = SH1107
+address = 0x3C
+rotate = 2 
+height = 128
+width = 128
