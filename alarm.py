@@ -206,12 +206,12 @@ class MyServer(BaseHTTPRequestHandler):
                     if ups_object:
                         self.wfile.write(bytes(f'{ups_object.readVoltage():2.2f}', "utf-8"))
                     else:
-                        if batserialvalid:
+                        if batserialvalid and upsvoltage:
                             self.wfile.write(bytes(f'{upsvoltage:2.2f}', "utf-8"))
                         else:
-                            self.wfile.write(bytes(str('--')))
+                            self.wfile.write(bytes(str('--'), "utf-8"))
                 else:
-                    self.wfile.write(bytes(str('--')))
+                    self.wfile.write(bytes(str('--'), "utf-8"))
             elif (command == '/get_alarm_current'):
                 self.send_response(200)
                 self.send_header("Content-type", "text/plain")
@@ -220,12 +220,12 @@ class MyServer(BaseHTTPRequestHandler):
                     if ups_object:
                         self.wfile.write(bytes(f'{ups_object.readCurrent():2.2f}', "utf-8"))
                     else:
-                        if curserialvalid:
+                        if curserialvalid and curserialvalue:
                             self.wfile.write(bytes(f'{curserialvalue:2.2f}', "utf-8"))
                         else:
-                            self.wfile.write(bytes(str('--')))
+                            self.wfile.write(bytes(str('--'), "utf-8"))
                 else:
-                    self.wfile.write(bytes(str('--')))
+                    self.wfile.write(bytes(str('--'), "utf-8"))
             elif (command == '/get_alarm_capacity'):    
                 self.send_response(200)
                 self.send_header("Content-type", "text/plain")
@@ -234,12 +234,12 @@ class MyServer(BaseHTTPRequestHandler):
                     if ups_object:
                         self.wfile.write(bytes(f'{ups_object.readCapacity():2.2f}', "utf-8"))
                     else:
-                        if batserialvalid:
+                        if batserialvalid and upscapacity:
                             self.wfile.write(bytes(f'{upscapacity:2.2f}', "utf-8"))
                         else:
-                            self.wfile.write(bytes(str('--')))
+                            self.wfile.write(bytes(str('--'), "utf-8"))
                 else:
-                    self.wfile.write(bytes(str('---')))
+                    self.wfile.write(bytes(str('--'), "utf-8"))
             elif (command == '/img1.jpg'):
                 filename = None
                 self.send_response(200)
