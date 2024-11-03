@@ -161,7 +161,7 @@ class MyTemp:
                     self.bus.write_word_data(self.addr,TMP117_CONFIGURATION , self.swap16( tmp))
                 except IOError as error:
                     print ("Error : I2C access ", error )
-        if self.temp_type == TEMP_TYPE_TMP117:
+        if self.temp_type == TEMP_TYPE_BMP280:
             if self.initok:
                 mode=BMP280_FORCED_MODE
                 oversampling_p=BMP280_OVERSAMPLING_P_x16
