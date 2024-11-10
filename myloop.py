@@ -85,19 +85,19 @@ class MyLoop:
         value = False
         if (num == 1)  and self.pinout1lines:
             value = self.pinout1lines.get_values()[0] != 0
-            if self.inversed1:
+            if self.inversed1 == 1:
                 value = not value
         if (num == 2)  and self.pinout1lines:
             value = self.pinout2lines.get_values()[0] != 0
-            if self.inversed2:
+            if self.inversed2 == 1:
                 value = not value
         if (num == 3)  and self.pinout3lines:
             value = self.pinout3lines.get_values()[0] != 0
-            if self.inversed3:
+            if self.inversed3 == 1:
                 value = not value
         if (num == 4)  and self.pinout4lines:
             value = self.pinout4lines.get_values()[0] != 0
-            if self.inversed3:
+            if self.inversed3 == 1:
                 value = not value
 
 
