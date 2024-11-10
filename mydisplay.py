@@ -20,46 +20,60 @@ class MyDisplay:
     def __init__(self, type=DISPLAY_TYPE_SSD1306 , address = DISPLAY_ADDR, rotate = '0', width = '128' , height = '64'):
         self.width = int(width)
         self.height = int(height)
-        if (type == DISPLAY_TYPE_SSD1306):
-            serial = i2c(port=1, address=address)
-            self.device = ssd1306(serial,rotate=int(rotate),width=int(width), height=int(height))
-        elif (type == DISPLAY_TYPE_SH1107):
-            serial = i2c(port=1, address=address)
-            self.device = sh1106(serial,rotate=int(rotate),width=int(width), height=int(height))
-        self.font = ImageFont.truetype("/usr/share/fonts/truetype/freefont/FreeSans.ttf",12)
-        #self.whole = Image.new("RGBA",  (self.width,self.height), (0,0,0))
-        self.whole = Image.new(self.device.mode,  self.device.size, BACKGROUND_COLOR)
-        self.draw = ImageDraw.Draw(self.whole)
-        self.device.display (self.whole)
-        
+        try:
+            if (type == DISPLAY_TYPE_SSD1306):
+                serial = i2c(port=1, address=address)
+                self.device = ssd1306(serial,rotate=int(rotate),width=int(width), height=int(height))
+            elif (type == DISPLAY_TYPE_SH1107):
+                serial = i2c(port=1, address=address)
+                self.device = sh1106(serial,rotate=int(rotate),width=int(width), height=int(height))
+        except:
+            self.device = None
+
+        if self.device:
+            self.font = ImageFont.truetype("/usr/share/fonts/truetype/freefont/FreeSans.ttf",12)
+            #self.whole = Image.new("RGBA",  (self.width,self.height), (0,0,0))
+            self.whole = Image.new(self.device.mode,  self.device.size, BACKGROUND_COLOR)
+            self.draw = ImageDraw.Draw(self.whole)
+            self.device.display (self.whole)
 
 
     def get_height (self):
-        return self.height
+        if self.device:
+            return self.height
+        else:
+            return -1
 
     def get_width(self):
-        return self.width
+        if self.device:
+            return self.width
+        else:
+            return -11
 
 
     def addimage(self , x,y,w,h,image_path):
-        im1 = Image.open(image_path)
-        im1 = im1.resize((w,h))
-        self.whole.paste (im1, (x, y))
-        self.device.display (self.whole)
+        if self.device:
+            im1 = Image.open(image_path)
+            im1 = im1.resize((w,h))
+            self.whole.paste (im1, (x, y))
+            self.device.display (self.whole)
 
 
     def clear(self):
-        self.whole = Image.new(self.device.mode,  self.device.size, BACKGROUND_COLOR)
-        self.draw = ImageDraw.Draw(self.whole)
-        self.device.display (self.whole)
+        if self.device:
+            self.whole = Image.new(self.device.mode,  self.device.size, BACKGROUND_COLOR)
+            self.draw = ImageDraw.Draw(self.whole)
+            self.device.display (self.whole)
 
     def drawtext (self , x, y, text , fill="white"):
-        self.draw.text((x, y), text, fill=fill, font=self.font)
-        self.device.display (self.whole)
+        if self.device:
+            self.draw.text((x, y), text, fill=fill, font=self.font)
+            self.device.display (self.whole)
 
     def drawcentertext (self , x, y, text , fill="white"):
-        wtext,htext = self.draw.textsize (text, font=self.font)
-        self.draw.text((x - (wtext/2), y - (htext/2)), text, fill=fill, font=self.font)
-        self.device.display (self.whole)
+        if self.device:
+            wtext,htext = self.draw.textsize (text, font=self.font)
+            self.draw.text((x - (wtext/2), y - (htext/2)), text, fill=fill, font=self.font)
+            self.device.display (self.whole)
 
 
