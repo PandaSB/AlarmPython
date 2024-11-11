@@ -26,6 +26,7 @@ from myaws import MyAws
 from mytemp import MyTemp
 from mysiren import MySiren
 from mypir import MyPir
+from myswitch import MySwitch
 from mybuzzer import MyBuzzer
 from mydisplay import MyDisplay
 
@@ -46,6 +47,7 @@ hasmqtt             = 0
 hastemp             = 0
 hassiren            = 0
 haspir              = 0
+hasswitch           = 0
 hasbuzzer           = 0
 hasheartbeat        = 0
 hasdisplay          = 0
@@ -64,6 +66,7 @@ mqtt_object         = None
 temp_object         = None
 siren_object        = None
 pir_object          = None
+switch_object       = None
 buzzer_object       = None
 display_object      = None
 
@@ -74,10 +77,10 @@ alarm_ring          = False
 alarm_security      = False
 lastalamstate       = False
 intrusion           = False
-pir                 = False
+switch              = False
 lastalarmstate      = False
-lastintrutiontime   = 0
 lastpirtime         = 0
+lastswitchtime      = 0
 lastserialtime      = 0
 startalarmdelay     = 0
 heartbeattime       = 0
@@ -97,6 +100,7 @@ aws_config          = None
 temp_config         = None
 siren_config        = None
 pir_config          = None
+switch_config       = None
 buzzer_config       = None
 heartbeat_config    = None
 zone1_config        = None
@@ -525,6 +529,18 @@ def callback_pir (value):
             lastpirtime = currenttime
             pir = True
 
+def callback_switch (value):
+    global switch
+    global lastswitchtime
+    if (value == 1):
+        currenttime = int(time.time())
+        print ( "switch  : " + str(currenttime) + " offset : " +  str (currenttime - lastswitchtime) )
+
+        if currenttime > (lastswitchtime + 60):
+            lastswitchtime = currenttime
+            switch = True
+
+
 
 def send_status (title , msg_status, filename1,filename2,level):
     """Send status to Email / Telegram / Mqtt  / Aws / SMS  """
@@ -597,6 +613,7 @@ def main():
     global hassiren
     global haspir
     global hasbuzzer
+    global hasswitch
     global hasheartbeat
     global hasdisplay
 
@@ -613,6 +630,7 @@ def main():
     global mqtt_object
     global siren_object
     global pir_object
+    global switch_object
     global buzzer_object
     global temp_object
     global display_object
@@ -630,6 +648,7 @@ def main():
     global mqtt_config
     global siren_config
     global pir_config
+    global switch_config
     global buzzer_config
     global heartbeat_config
     global zone1_config
@@ -652,6 +671,7 @@ def main():
     global basewebserver
     global intrusion
     global pir
+    global switch
 
     global alimserialvalue
     global alimserialvalid
@@ -711,6 +731,8 @@ def main():
             hassiren = 1
         if global_config["pir"] == "yes":
             haspir = 1
+        if global_config["switch"] == "yes":
+            hasswitch = 1
         if global_config["buzzer"] == "yes":
             hasbuzzer = 1
         if global_config["heartbeat"] == "yes":
@@ -834,6 +856,12 @@ def main():
         for key in pir_config:
             print(key + ":" + pir_config[key])
 
+    if "SWITCH" in config:
+        switch_config = config["SWITCH"]
+        print(switch_config)
+        for key in switch_config:
+            print(key + ":" + switch_config[key])
+
     if "BUZZER" in config:
         buzzer_config = config["BUZZER"]
         print(buzzer_config)
@@ -943,6 +971,9 @@ def main():
     if haspir:
         pir_object = MyPir (pir_config["gpio"], callback_pir)
 
+    if hasswitch:
+        switch_object = MySwitch (switch_config["gpio"], callback_switch)
+
     if hasbuzzer:
         buzzer_object = MyBuzzer (buzzer_config["gpio"])
 
@@ -955,9 +986,9 @@ def main():
     else:
         msg_status += ' off'
     if alarm_zone == 1:
-        msg_status += 'zone 1'
+        msg_status += ' zone 1'
     else:
-        msg_status += 'zone 2'
+        msg_status += ' zone 2'
     send_status ('Alarm restart' , msg_status, None,None,level_config["restart"])
 
     startalarmdelay = 0
@@ -1198,6 +1229,9 @@ def main():
                 if alarm_security == True: 
                     alarm_detect = True
 
+            if (switch == True):
+                alarm_detect = True
+
             if alarm_detect == True:
                 filename = None
                 filename2 = None
@@ -1213,6 +1247,8 @@ def main():
                     msg_status += 'Intrusion '
                 if pir:
                     msg_status += 'Pir '
+                if switch:
+                    msg_status += 'Switch Box '
                 if alarm_security:
                     msg_status += 'Security keyboard '
                 if msg_status == '':
@@ -1228,6 +1264,8 @@ def main():
                     intrusion = False
                 if pir:
                     pir = False
+                if switch:
+                    switch = False
                 if alarm_security:
                     alarm_security = False
 
@@ -1274,6 +1312,7 @@ def main():
                 siren_object.off()
             intrusion = False
             pir = False
+            switch = False
             alarm_security = False
         time.sleep(1)
 
