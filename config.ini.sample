@@ -15,6 +15,7 @@ mqtt = no
 temp = yes
 siren = yes
 pir = yes
+switch = no
 buzzer = yes
 heartbeat = no
 display = no
@@ -104,6 +105,9 @@ timeout = 120
 
 [PIR]
 gpio = GPIO27
+
+[SWITCH]
+gpio = GPIO4
 
 [TEMP]
 type = AM2320
