@@ -24,12 +24,15 @@ class MyIpCamera:
     def capture_photo(self, name=None):
         """Capture phot from camera connected on network"""
 
-        request = requests.get(self.url, auth=(self.login, self.password), timeout=10)
-        img = cv2.imdecode(np.array(bytearray(request.content), dtype=np.uint8), -1)
+        try:
+            request = requests.get(self.url, auth=(self.login, self.password), timeout=10)
+            img = cv2.imdecode(np.array(bytearray(request.content), dtype=np.uint8), -1)
 
-        if name is None:
-            name = "/tmp/image" + str(int(random.random() * 1000)) + ".png"
+            if name is None:
+                name = "/tmp/image" + str(int(random.random() * 1000)) + ".png"
 
-        print("name" + name)
-        cv2.imwrite(name, img)
+            print("name" + name)
+            cv2.imwrite(name, img)
+        except: 
+            return None
         return name

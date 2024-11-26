@@ -90,15 +90,18 @@ class MyMqtt:
         mymqtt_topicpub    = topicpub
         self.callback = _callback
 
-        self.client = mqtt.Client(protocol=mqtt.MQTTv5, transport = "websockets")
+        try: 
+            self.client = mqtt.Client(protocol=mqtt.MQTTv5, transport = "websockets")
 
-        #self.client.tls_set()
+            #self.client.tls_set()
 
-        self.client.on_connect = self.on_connect
-        self.client.on_message = self.on_message
-        self.client.username_pw_set(username=user,password=passwd)
+            self.client.on_connect = self.on_connect
+            self.client.on_message = self.on_message
+            self.client.username_pw_set(username=user,password=passwd)
 
-        result = self.client.connect(host= mymqtt_endpoint, port=int(port), keepalive=60, clean_start=True , properties= None )
+            result = self.client.connect(host= mymqtt_endpoint, port=int(port), keepalive=60, clean_start=True , properties= None )
+        except:
+            result = -1
         print ('result connection mqtt : ' + str(result))
 
         if (result == 0 ):
