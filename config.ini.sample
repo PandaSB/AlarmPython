@@ -50,7 +50,7 @@ chat_id = aaaaaaaaa
 token = 0000000000:xxxxxxxxxxxxxxxxxxxxxxxxxxx
 
 [SMS]
-receiver = +33600000000
+receiver = +33600000000 +33700000000
 password = TestPassword
 
 [USBCAMERA]
@@ -80,6 +80,8 @@ homealarm = 00000004
 ring      = 00000005
 security  = 00000006
 intrusion = 00000003
+detector  = 00000007 00000008 00000009
+
 
 [AWS]
 endpoint = xxxxxxxxx.iot.eu-west-3.amazonaws.com
@@ -134,6 +136,7 @@ pir   = yes
 intrusion = yes
 security = yes
 
+
 [ZONE2]
 loop1 = yes
 loop2 = yes
@@ -148,6 +151,7 @@ restart = all
 change  = sms email telegram aws mqtt
 power   = sms telegram aws mqtt
 ring    = sms telegram aws mqtt
+detector = sms telegram aws mqtt
 alarm   = all
 
 [DISPLAY]
