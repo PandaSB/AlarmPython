@@ -114,21 +114,23 @@ class MyModem:
 
     def createsms(self, modemid, phone_number, text):
         """Creaate a sms in memory of LTE dongle"""
-        if int(self.modemid) >= 0:
-            cmd = (
-                "mmcli -m "
-                + modemid
-                + " --messaging-create-sms=\"text='"
-                + text
-                + "',number='"
-                + phone_number
-                + "'\""
-            )
-            output, success = self.system_call(cmd)
-            status = output.split(" ")
-            print(status)
-            if status[0] == "Successfully":
-                path = status[-1]
-                cmd = "mmcli -m " + modemid + " -s " + path + "--send"
+        phone_list = phone_number.split()
+        for tel in phone_list:
+            if int(self.modemid) >= 0:
+                cmd = (
+                    "mmcli -m "
+                    + modemid
+                    + " --messaging-create-sms=\"text='"
+                    + text
+                    + "',number='"
+                    + tel
+                    + "'\""
+                )
                 output, success = self.system_call(cmd)
-                self.deletesms(modemid, path)
+                status = output.split(" ")
+                print(status)
+                if status[0] == "Successfully":
+                    path = status[-1]
+                    cmd = "mmcli -m " + modemid + " -s " + path + "--send"
+                    output, success = self.system_call(cmd)
+                    self.deletesms(modemid, path)

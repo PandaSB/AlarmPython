@@ -79,6 +79,7 @@ lastalamstate       = False
 intrusion           = False
 switch              = False
 lastalarmstate      = False
+alarm_detector      = 0
 lastpirtime         = 0
 lastswitchtime      = 0
 lastserialtime      = 0
@@ -307,6 +308,7 @@ def command_serial ( buffer):
     global alarm_on
     global alarm_zone
     global alarm_ring
+    global alarm_detector
     global alarm_security
     global hashf
     global hf_config
@@ -346,6 +348,14 @@ def command_serial ( buffer):
                 if (check_cmd[1] == hf_config['ring'].lower()):
                     print ("alarme ring : ")
                     alarm_ring = True
+                list_detector = hf_config['detector'].lower().split()
+                alarm_detector = 0
+                alarm_detector_num = 0
+                for detector in list_detector:
+                    alarm_detector_num += 1
+                    if (check_cmd[1] == detector):
+                        print ("detecteur numero " + str(alarm_detector_num))
+                        alarm_detector = alarm_detector_num ;
                 if (check_cmd[1] == hf_config['intrusion'].lower()):
                     print ( "intrusion : " + str(currenttime) + " offset : " +  str (currenttime - lastintrutiontime) )
                     if currenttime > (lastintrutiontime + 60):
@@ -662,6 +672,7 @@ def main():
     global alarm_on
     global alarm_zone
     global alarm_ring
+    global alarm_detector
     global alarm_security
     global modemid
     global upsvoltage
@@ -1053,6 +1064,8 @@ def main():
                 out = {}
                 heartbeatdata = {}
                 gsmdata = {}
+                success1 = None
+                success2 = None
                 if int(modemid) >= 0:
                     output1, success1 = MyUtils.system_call("mmcli --modem=" + modemid + " --location-get -J")
                     output2, success2 = MyUtils.system_call("mmcli --modem=" + modemid + " -J")
@@ -1115,19 +1128,20 @@ def main():
 
         if modem_object:
             count = modem_object.getcountsms(str(modemid))
-            if count > 0:
-                paths = modem_object.getpathsms(str(modemid))
-                for path in paths:
-                    phone_number, content = modem_object.readsms(str(modemid), path)
-                    modem_object.deletesms(str(modemid), path)
-                    lines = content.splitlines()
-                    if (lines[0] == sms_config["password"]) and (len (lines) == 2):
-                        command_callback_modem(lines[1])
-                    else:
-                        email_object.sendmail(email_config["receiver"],'SMS received', 'SMS content : \r\n<br>'+content)
+            if count:
+                if count > 0:
+                    paths = modem_object.getpathsms(str(modemid))
+                    for path in paths:
+                        phone_number, content = modem_object.readsms(str(modemid), path)
+                        modem_object.deletesms(str(modemid), path)
+                        lines = content.splitlines()
+                        if (lines[0] == sms_config["password"]) and (len (lines) == 2):
+                            command_callback_modem(lines[1])
+                        else:
+                            email_object.sendmail(email_config["receiver"],'SMS received', 'SMS content : \r\n<br>'+content)
 
-                    print(phone_number)
-                    print(content)
+                        print(phone_number)
+                        print(content)
         if lastalarmstate != alarm_on:
             if alarm_on:
                 msg_status = "Alarm on zone " + str (alarm_zone)
@@ -1206,6 +1220,23 @@ def main():
                 os.remove(filename2)
             if alarm_ring:
                 alarm_ring = False
+
+
+        if alarm_detector > 0:
+            filename = None
+            filename2 = None
+
+            if buzzer_object:
+                buzzer_object.setbuzzer (number = 10 , pulse = 0.1 , delay = 0.1)
+            if usbcamera_object:
+                filename = usbcamera_object.capture_photo()
+            if ipcamera_object:
+                filename2 = ipcamera_object.capture_photo()
+            msg_status = 'Detecteur ' +  str (alarm_detector)
+
+            send_status ("Detecteur", msg_status,filename, filename2,level_config["detector"])
+            if alarm_detector > 0:
+                alarm_detector = 0
 
         if alarm_on:
             print("alarme on ")
