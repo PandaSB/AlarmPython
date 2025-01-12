@@ -78,6 +78,7 @@ alarm_security      = False
 lastalamstate       = False
 intrusion           = False
 switch              = False
+pir                 = False
 lastalarmstate      = False
 alarm_detector      = 0
 lastpirtime         = 0
@@ -331,36 +332,48 @@ def command_serial ( buffer):
             lastserialtime = currenttime
             lastserialcmd = buffer
             if (check_cmd[0] == 'hfrecu'):
-                if (check_cmd[1] == hf_config['onalarm'].lower()):
-                    print ("alarme on : ")
-                    alarm_on = True
-                    alarm_zone = 1
-                if (check_cmd[1] == hf_config['homealarm'].lower()):
-                    print ("alarme home : ")
-                    alarm_on = True
-                    alarm_zone = 2
-                if (check_cmd[1] == hf_config['offalarm'].lower()):
-                    print ("alarme off : ")
-                    alarm_on = False
-                if (check_cmd[1] == hf_config['security'].lower()):
-                    print ("alarme security : ")
-                    alarm_security = True
-                if (check_cmd[1] == hf_config['ring'].lower()):
-                    print ("alarme ring : ")
-                    alarm_ring = True
-                list_detector = hf_config['detector'].lower().split()
+                list_alarmon = hf_config['onalarm'].lower().split()
+                for code_alarmon in list_alarmon :
+                    if (check_cmd[1] == code_alarmon):
+                        print ("alarme on : ")
+                        alarm_on = True
+                        alarm_zone = 1
+                list_alarmhome = hf_config['homealarm'].lower().split()
+                for code_alarmhome in list_alarmhome:
+                    if (check_cmd[1] == code_alarmhome):
+                        print ("alarme home : ")
+                        alarm_on = True
+                        alarm_zone = 2
+                list_alarmoff = hf_config['offalarm'].lower().split()
+                for code_alarmoff in list_alarmoff:
+                    if (check_cmd[1] == code_alarmoff):
+                        print ("alarme off : ")
+                        alarm_on = False
+                list_security = hf_config['security'].lower().split()
+                for code_security in list_security:
+                    if (check_cmd[1] == code_security):
+                        print ("alarme security : ")
+                        alarm_security = True
+                list_ring = hf_config['ring'].lower().split()
+                for code_ring in list_ring:
+                    if (check_cmd[1] ==code_ring):
+                        print ("alarme ring : ")
+                        alarm_ring = True
                 alarm_detector = 0
                 alarm_detector_num = 0
-                for detector in list_detector:
+                list_detector = hf_config['detector'].lower().split()
+                for code_detector in list_detector:
                     alarm_detector_num += 1
-                    if (check_cmd[1] == detector):
+                    if (check_cmd[1] == code_detector):
                         print ("detecteur numero " + str(alarm_detector_num))
                         alarm_detector = alarm_detector_num ;
-                if (check_cmd[1] == hf_config['intrusion'].lower()):
-                    print ( "intrusion : " + str(currenttime) + " offset : " +  str (currenttime - lastintrutiontime) )
-                    if currenttime > (lastintrutiontime + 60):
-                        lastintrutiontime = currenttime
-                        intrusion = True
+                list_intrusion = hf_config['intrusion'].lower().split()
+                for code_intrusion in list_intrusion:
+                    if (check_cmd[1] == code_intrusion):
+                        print ( "intrusion : " + str(currenttime) + " offset : " +  str (currenttime - lastintrutiontime) )
+                        if currenttime > (lastintrutiontime + 60):
+                            lastintrutiontime = currenttime
+                            intrusion = True
             elif (check_cmd[0] == 'alim'):
                 print ("Tension alim: " + check_cmd[1])
                 alimserialvalue = float (check_cmd[1])
@@ -1221,7 +1234,6 @@ def main():
             if alarm_ring:
                 alarm_ring = False
 
-
         if alarm_detector > 0:
             filename = None
             filename2 = None
@@ -1233,10 +1245,7 @@ def main():
             if ipcamera_object:
                 filename2 = ipcamera_object.capture_photo()
             msg_status = 'Detecteur ' +  str (alarm_detector)
-
             send_status ("Detecteur", msg_status,filename, filename2,level_config["detector"])
-            if alarm_detector > 0:
-                alarm_detector = 0
 
         if alarm_on:
             print("alarme on ")
@@ -1258,6 +1267,9 @@ def main():
                     alarm_detect = True
             if ((alarm_zone == 1) and (zone1_config["security"] == 'yes') ) or ((alarm_zone == 2) and (zone2_config["security"] == 'yes')) : 
                 if alarm_security == True: 
+                    alarm_detect = True
+            if ((alarm_zone == 1) and (zone1_config["detector"] == 'yes') ) or ((alarm_zone == 2) and (zone2_config["detector"] == 'yes')) :
+                if alarm_detector > 0:
                     alarm_detect = True
 
             if (switch == True):
@@ -1282,6 +1294,8 @@ def main():
                     msg_status += 'Switch Box '
                 if alarm_security:
                     msg_status += 'Security keyboard '
+                if alarm_detector > 0:
+                    msg_status = 'Detecteur ' +  str (alarm_detector)
                 if msg_status == '':
                     msg_status = "Unknown"
 
@@ -1302,18 +1316,26 @@ def main():
 
             if loop_object:
                 loop = False
+                loop_num = ''
                 if ((alarm_zone == 1) and (zone1_config["loop1"] == 'yes') ) or ((alarm_zone == 2) and (zone2_config["loop1"] == 'yes')) : 
                     if loop_object.pinoutgetvalue(1) == True: 
                         loop = True
+                        loop_num += "1 "
                 if ((alarm_zone == 1) and (zone1_config["loop2"] == 'yes') ) or ((alarm_zone == 2) and (zone2_config["loop2"] == 'yes')) : 
                     if loop_object.pinoutgetvalue(2) == True: 
                         loop = True
+                        loop_num += "2 "
+
                 if ((alarm_zone == 1) and (zone1_config["loop3"] == 'yes') ) or ((alarm_zone == 2) and (zone2_config["loop3"] == 'yes')) : 
                     if loop_object.pinoutgetvalue(3) == True: 
                         loop = True
+                        loop_num += "3 "
+
                 if ((alarm_zone == 1) and (zone1_config["loop4"] == 'yes') ) or ((alarm_zone == 2) and (zone2_config["loop4"] == 'yes')) : 
                     if loop_object.pinoutgetvalue(4) == True: 
-                        loop = True        
+                        loop = True
+                        loop_num += "4 "
+
                 print("line " + str(loop))
 
             if loop and loopcheck:
@@ -1323,7 +1345,7 @@ def main():
                     startalarmdelay = int(time.time())
                     if buzzer_object:
                         buzzer_object.setbuzzer (number = alarmdelay , pulse = 0.25 , delay = 0.75)
-                    msg_status = "Coupure boucle"
+                    msg_status = "Coupure boucle" + loop_num
                     if usbcamera_object:
                         filename = usbcamera_object.capture_photo()
                     if ipcamera_object:
@@ -1345,6 +1367,9 @@ def main():
             pir = False
             switch = False
             alarm_security = False
+
+        if alarm_detector > 0:
+            alarm_detector = 0
         time.sleep(1)
 
 

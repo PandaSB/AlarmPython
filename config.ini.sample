@@ -130,11 +130,12 @@ nbelem = 3
 [ZONE1]
 loop1 = yes
 loop2 = yes
-loop3 = yes
-loop4 = yes
+loop3 = no
+loop4 = no
 pir   = yes
 intrusion = yes
 security = yes
+detector = no
 
 
 [ZONE2]
@@ -145,6 +146,7 @@ loop4 = no
 pir   = no
 intrusion = no
 security = yes
+detector = no
 
 [LEVEL]
 restart = all
