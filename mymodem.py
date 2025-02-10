@@ -1,15 +1,22 @@
 # SPDX-FileCopyrightText: 2024 BARTHELEMY Stephane  stephane@sbarthelemy.com
 # SPDX-License-Identifier: ISC
 
+import time
 import json
 import shlex
 from subprocess import STDOUT, CalledProcessError, check_output
+from threading import Thread
+
 
 
 class MyModem:
     """Access to usb LTE dongle"""
 
     modemid = -1
+    async_modemid = -1
+    async_phone_number = None
+    async_timeout = 0
+    async_direct_at = False
 
     def system_call(self, command):
         """Call a system command"""
@@ -134,3 +141,70 @@ class MyModem:
                     cmd = "mmcli -m " + modemid + " -s " + path + "--send"
                     output, success = self.system_call(cmd)
                     self.deletesms(modemid, path)
+
+    def phonecall (self,modemid , phone_number,timeout,direct_at):
+        phone_list = phone_number.split()
+        for tel in phone_list:
+            if int(self.modemid) >= 0:
+                if (direct_at == True) :
+                    cmd = (
+                        "mmcli -m "
+                        + modemid
+                        + " --command=\"ATD"
+                        + tel
+                        + "\""
+                    )
+                    output, success = self.system_call(cmd)
+                    time.sleep(timeout)
+                    cmd = (
+                        "mmcli -m "
+                        + modemid
+                        + " --command=\"ATH\""
+                    )
+                    output, success = self.system_call(cmd)
+                else :
+                    cmd = (
+                        "mmcli -m "
+                        + modemid
+                        + " --voice-create-call='number="
+                        + tel
+                        + "'"
+                    )
+                    output, success = self.system_call(cmd)
+                    cmd = (
+                        "mmcli -m "
+                        + modemid
+                        + " --voice-list-calls -J "
+                    )
+                    output, success = self.system_call(cmd)
+                    if success:
+                        data = json.loads(output)
+
+                        try:
+                            callid = data["modem.voice.call"][0]
+                            time.sleep(timeout)
+                            cmd = (
+                                "mmcli -m "
+                                + modemid
+                                + " --voice-delete-call='"
+                                + callid
+                                + "'"
+                            )
+                            output, success = self.system_call(cmd)
+                        except Exception as e:
+                            print(e)
+
+
+    def async_phonecall (self,modemid , phone_number,timeout,direct_at):
+        try:
+            self.async_modemid = modemid
+            self.async_phone_number = phone_number
+            self.async_timeout = timeout
+            self.async_direct_at = direct_at
+            thread = Thread(target=self.run_async_phonecall)
+            thread.start()
+        except KeyboardInterrupt:
+            pass
+
+    def run_async_phonecall(self):
+            self.phonecall (self.async_modemid ,self.async_phone_number,self.async_timeout,self.async_direct_at  )

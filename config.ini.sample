@@ -149,7 +149,7 @@ security = yes
 detector = no
 
 [LEVEL]
-restart = all
+restart = sms email telegram aws mqtt call
 change  = sms email telegram aws mqtt
 power   = sms telegram aws mqtt
 ring    = sms telegram aws mqtt

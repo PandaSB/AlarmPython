@@ -579,12 +579,6 @@ def send_status (title , msg_status, filename1,filename2,level):
     global aws_object
     global mqtt_object
 
-    if modem_object:
-        if ('sms' in level) or ('all' in level):
-            modem_object.createsms(
-                modemid, sms_config["receiver"], msg_status
-            )
-
     if email_object:
         if ('email' in level) or ('all' in level):
             email_object.sendmail(
@@ -613,6 +607,16 @@ def send_status (title , msg_status, filename1,filename2,level):
         if ('mqtt' in level) or ('all' in level):
             if mqtt_object.isconnected():
                 mqtt_object.publish_message(json_data)
+
+    if modem_object:
+        if ('sms' in level) or ('all' in level):
+            modem_object.createsms(
+                modemid, sms_config["receiver"], msg_status
+            )
+        if ('call' in level) or ('all' in level):
+            modem_object.async_phonecall(
+                modemid, sms_config["receiver"],30,False
+            )
 
 
 def main():
