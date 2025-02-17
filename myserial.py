@@ -33,8 +33,12 @@ class MySerial:
 
     def __init__(self, port , speed , bytesize , parity, stop , callback  ):
         print ("Configure serial port " + port +" : " + speed)
-        self.serialPort = serial.Serial (port,speed,int(bytesize), parity,int(stop),2,False, False)
+        try:
+            self.serialPort = serial.Serial (port,speed,int(bytesize), parity,int(stop),2,False, False)
+        except:
+            self.serialPort = None 
         self.buffer = ""
         self.callback = callback 
-        thread = Thread(target=self.serialpulling)
-        thread.start()
+        if (self.serialPort):
+            thread = Thread(target=self.serialpulling)
+            thread.start()
