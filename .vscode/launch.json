@@ -5,11 +5,20 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "Débogueur Python : Fichier actuel",
+      "name": "Débogueur Python : Fichier principal",
       "type": "debugpy",
       "request": "launch",
       "program": "alarm.py",
       "console": "integratedTerminal"
+    },
+    {
+      "name": "Débogueur Python : ./testapp/testmodemserial.py",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "./testapp/testmodemserial.py",
+      "console": "integratedTerminal",
+      "args": ["-n", "+33672864452"]
+
     }
   ]
 }
