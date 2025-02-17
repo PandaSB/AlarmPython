@@ -112,14 +112,20 @@ class MyTemp:
 
     def __init__(self, temp_type='',temp_addr=0x00 ):
         if temp_type == TEMP_TYPE_AM2320:
-            self.addr = int(temp_addr,0)
-            self.temp_type = temp_type
-            self.bus = smbus.SMBus(1)
-            self.initok = True
+            try:
+                self.bus = smbus.SMBus(1)
+                self.addr = int(temp_addr,0)
+                self.temp_type = temp_type
+                self.initok = True
+            except : 
+                self.initok = False
         if temp_type == TEMP_TYPE_TMP117:
-            self.addr = int(temp_addr,0)
-            self.temp_type = temp_type
-            self.bus = smbus.SMBus(1)
+            try:
+                self.bus = smbus.SMBus(1)
+                self.addr = int(temp_addr,0)
+                self.temp_type = temp_type
+            except:
+                self.initok = False
             try:
                 self.deviceid = self.swap16(self.bus.read_word_data(self.addr,TMP117_DEVICE_ID)) ;
             except IOError as error :

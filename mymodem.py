@@ -27,6 +27,9 @@ class MyModem:
         except CalledProcessError as e:
             output = e.output.decode()
             success = False
+        except FileNotFoundError as e:
+            output = None
+            success = False 
         return output, success
 
     def __init__(self):

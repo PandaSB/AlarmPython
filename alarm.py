@@ -1,4 +1,4 @@
-#!/bin/python
+#!/bin/python3
 # SPDX-FileCopyrightText: 2024 BARTHELEMY Stephane  stephane@sbarthelemy.com
 # SPDX-License-Identifier: ISC
 
