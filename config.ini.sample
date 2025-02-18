@@ -49,6 +49,14 @@ name = @TelegramBotExample
 chat_id = aaaaaaaaa
 token = 0000000000:xxxxxxxxxxxxxxxxxxxxxxxxxxx
 
+[MODEM]
+direct_at = False
+port = /dev/ttyUSB1
+speed = 115200
+bytesize = 8
+parity = N
+stop = 1
+
 [SMS]
 receiver = +33600000000 +33700000000
 password = TestPassword

@@ -92,6 +92,7 @@ lastserialcmd       = ""
 email_config        = None
 loop_config         = None
 telegram_config     = None
+modem_config        = None
 sms_config          = None
 usbcamera_config    = None
 ipcamera_config     = None
@@ -615,7 +616,7 @@ def send_status (title , msg_status, filename1,filename2,level):
             )
         if ('call' in level) or ('all' in level):
             modem_object.async_phonecall(
-                modemid, sms_config["receiver"],30,False
+                modemid, sms_config["receiver"],10
             )
 
 
@@ -665,6 +666,7 @@ def main():
     global email_config
     global loop_config
     global telegram_config
+    global modem_config
     global sms_config
     global usbcamera_config
     global ipcamera_config
@@ -817,6 +819,12 @@ def main():
         for key in telegram_config:
             print(key + ":" + telegram_config[key])
 
+    if "MODEM" in config:
+        modem_config = config["MODEM"]
+        print(modem_config)
+        for key in modem_config:
+            print(key + ":" + modem_config[key])
+
     if "SMS" in config:
         sms_config = config["SMS"]
         print(sms_config)
@@ -935,7 +943,7 @@ def main():
 
 
     if hasmodem:
-        modem_object = MyModem()
+        modem_object = MyModem(modem_config["direct_at"],modem_config["port"],modem_config["speed"],modem_config["bytesize"],modem_config["parity"],modem_config["stop"])
         modemid = modem_object.getmodem()
 
     if hasloop:
