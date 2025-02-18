@@ -101,6 +101,7 @@ if __name__ == '__main__':
     write ("AT\r\n","OK",1)
     write ("ATI\r\n","OK",2)
     write ("AT+SIMCOMATI\r\n","OK",2)
+    write ("AT+CSQ\r\n","OK",2)
     write ("AT+COPS?\r\n","+COPS:",2)
     if (phone != ""): 
         # write ("AT+DTAM?\r\n")
@@ -141,7 +142,18 @@ if __name__ == '__main__':
         if infosms.startswith("+CMGL") : 
             index = infosms.split(',')[0].split()[1]
             print ('%s : %s' % (index, infosms))
-
+    write ("AT+CMGR=1\r\n","OK",10)
+    content = ""
+    phone = ""
+    if (bufferlist[-1].startswith("OK")):
+        for infosms in bufferlist[:-1]:
+            if infosms.startswith("+CMGR") : 
+                listsms = infosms.split(",")
+                phone = listsms[1]
+            else:
+                content += infosms + "\r\n"
+    print ("phone %s " %phone)
+    print ("content %s" %content)
     time.sleep (10)
     end = True ; 
     sys.exit()
