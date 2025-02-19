@@ -17,7 +17,7 @@
       "request": "launch",
       "program": "./testapp/testmodemserial.py",
       "console": "integratedTerminal",
-      "args": ["-n", "+33672864452"]
+      "args": ["-n", "+33600000000"]
 
     }
   ]
