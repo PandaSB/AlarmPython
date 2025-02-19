@@ -124,6 +124,10 @@ if __name__ == '__main__':
         write ("AT+CPMS=\"ME\"\r\n")
         write ("AT+CPMS=?\r\n")
         write ("AT+CPMS?\r\n")
+        write ("AT+CLBS=?\r\n","OK",5)
+        write ("AT+SIMEI?\r\n","OK",5)
+        write ("AT+CLBS=2\r\n","+CLBS:",10)
+        write ("AT+CLBS=1\r\n","+CLBS:",10)
         write ("AT+CMGS=\""+phone+"\"\r")
         for i in range(20):
             if len (bufferlist) > 0:
