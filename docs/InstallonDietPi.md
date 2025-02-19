@@ -159,3 +159,19 @@ WantedBy=multi-user.target
 SUBSYSTEM=="tty", ATTRS{idVendor}=="10c4", ATTRS{idProduct}=="ea60", SYMLINK+="ttySER0"
 ```
  
+
+ /etc/systemd/system/alarm.service
+ ```
+[Unit]
+Description=Alarm
+After=multi-user.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/AlarmPython
+ExecStart=/usr/bin/python3 /opt/AlarmPython/alarm.py
+KillSignal=SIGINT
+Restart=always
+ ```
+systemctl daemon-reload
+systemctl enable alarm.service
