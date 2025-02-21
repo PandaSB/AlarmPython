@@ -41,7 +41,7 @@ class MyModem:
 
     def callback(self, callbackbuffer):
         if (callbackbuffer != "") :
-            print ("message : " + callbackbuffer)
+            # print ("message : " + callbackbuffer)
             self.bufferlist.append(callbackbuffer)
         if (callbackbuffer == "VOICE CALL: BEGIN"):
             print ("Voice call start")
