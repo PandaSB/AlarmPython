@@ -116,6 +116,7 @@ upsvoltage          = None
 upscurrent          = None
 upscapacity         = None
 pwlinegetvalue      = None
+force_status        = False
 
 basewebserver       = None
 alimserialvalue     = 0.0
@@ -131,7 +132,7 @@ exttemp             = 0.0
 exthumidity         = 0.0      
 extpressure         = 0.0
 
-last                = None 
+last                = None
 
 
 
@@ -327,6 +328,7 @@ def command_serial ( buffer):
     global last
 
     check_cmd = buffer.lower().split()
+    print ("Code receive : %s" % check_cmd )
     currenttime = int(time.time())
     if (len(check_cmd) > 0):
         if (currenttime > (lastserialtime + 2)) or ( buffer != lastserialcmd):
@@ -421,6 +423,7 @@ def command_received (cmd, modem = False , source = None  ):
     global exttemp
     global exthumidity
     global extpressure
+    global force_status 
 
     print ('command reveived : ', cmd)
     check_cmd = cmd.lower()
@@ -443,6 +446,17 @@ def command_received (cmd, modem = False , source = None  ):
                     reply = "alarm on zone 2"
             else:
                 reply = "alarm off"
+    if (check_cmd == "status"):
+        force_status = True ; 
+        reply  = 'email status'
+    if (check_cmd == 'reboot'):
+        reply = "Reboot raspberry PI"
+        reply, success = MyUtils.system_call("sudo shutdown -r now")
+        if not success:
+            reply= 'Error reboot'
+        else:
+            reply = "Reboot raspberry PI"
+
     if (check_cmd == 'cpu'):
         reply = 'CPU Temp : ' + str(MyUtils.get_cputemperature()) +'°C'
     if (check_cmd == 'ups'):
@@ -478,8 +492,9 @@ def command_received (cmd, modem = False , source = None  ):
             reply  = 'alarm on\r\n'
             reply += 'alarm home\r\n'
             reply += 'alarm off\r\n'
-            reply += 'alarm off\r\n'
             reply += 'alarm status\r\n'
+            reply += 'status\r\n'
+            reply += 'reboot\r\n'
             reply += 'cpu\r\n'
             reply += 'ups\r\n'
             reply += 'siren on\r\n'
@@ -702,6 +717,7 @@ def main():
     global intrusion
     global pir
     global switch
+    global force_status
 
     global alimserialvalue
     global alimserialvalid
@@ -1258,6 +1274,15 @@ def main():
                 filename2 = ipcamera_object.capture_photo()
             msg_status = 'Detecteur ' +  str (alarm_detector)
             send_status ("Detecteur", msg_status,filename, filename2,level_config["detector"])
+
+
+        if force_status == True:
+            if usbcamera_object:
+                filename = usbcamera_object.capture_photo()
+            if ipcamera_object:
+                filename2 = ipcamera_object.capture_photo()
+            send_status ("Email Status ", "info",filename, filename2,"email")
+            force_status = False
 
         if alarm_on:
             print("alarme on ")
