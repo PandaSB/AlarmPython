@@ -1277,6 +1277,8 @@ def main():
 
 
         if force_status == True:
+            filename = None
+            filename2 = None
             if usbcamera_object:
                 filename = usbcamera_object.capture_photo()
             if ipcamera_object:
