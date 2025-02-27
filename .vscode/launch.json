@@ -1,0 +1,24 @@
+{
+  // Utilisez IntelliSense pour en savoir plus sur les attributs possibles.
+  // Pointez pour afficher la description des attributs existants.
+  // Pour plus d'informations, visitez : https://go.microsoft.com/fwlink/?linkid=830387
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Débogueur Python : Fichier principal",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "alarm.py",
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "Débogueur Python : ./testapp/testmodemserial.py",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "./testapp/testmodemserial.py",
+      "console": "integratedTerminal",
+      "args": ["-n", "+33600000000"]
+
+    }
+  ]
+}
