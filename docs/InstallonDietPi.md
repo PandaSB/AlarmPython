@@ -5,10 +5,9 @@ For Raspberry Zero 2 : https://dietpi.com/downloads/images/DietPi_RPi234-ARMv8-B
 
 ## Install on DietPi
 
-apt-get install python3 python3-opencv python3-numpy python3-urllib3 python3-requests python3-libgpiod python3-python-telegram-bot python3-serial python3-smbus python3-paho-mqtt python3-luma.oled
-apt-get install git openssl-client ppp pppconfig
+apt-get install python3 python3-opencv python3-numpy python3-urllib3 python3-requests python3-libgpiod python3-python-telegram-bot python3-serial python3-smbus python3-paho-mqtt python3-luma.oled git openssl-client ppp pppconfig
 
-cd /opt && git clone git@github.com:PandaSB/AlarmPython.git
+cd /opt && git clone https://github.com/PandaSB/AlarmPython.git
 
 
 ### configure ppp
